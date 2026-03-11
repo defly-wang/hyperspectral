@@ -1,13 +1,25 @@
 # -*- mode: python ; coding: utf-8 -*-
+from PyInstaller.utils.hooks import collect_all, collect_submodules
 
 block_cipher = None
+
+datas_pyqt6, binaries_pyqt6, hiddenimports_pyqt6 = collect_all('PyQt6')
+datas_matplotlib, binaries_matplotlib, hiddenimports_matplotlib = collect_all('matplotlib')
+datas_scipy, binaries_scipy, hiddenimports_scipy = collect_all('scipy')
+
+hiddenimports = hiddenimports_pyqt6 + hiddenimports_matplotlib + hiddenimports_scipy + [
+    'matplotlib.backends.backend_qt5agg',
+    'numpy', 'scipy', 'openpyxl', 'sklearn', 'joblib',
+    'scipy.signal', 'scipy.ndimage', 'sklearn.ensemble', 'sklearn.svm', 
+    'sklearn.preprocessing', 'sklearn.metrics', 'sklearn.model_selection'
+]
 
 a = Analysis(
     ['main.py'],
     pathex=[],
-    binaries=[],
-    datas=[],
-    hiddenimports=['PyQt6', 'matplotlib', 'numpy', 'scipy', 'openpyxl'],
+    binaries=binaries_pyqt6 + binaries_matplotlib + binaries_scipy,
+    datas=datas_pyqt6 + datas_matplotlib + datas_scipy,
+    hiddenimports=hiddenimports,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
