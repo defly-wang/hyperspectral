@@ -3,7 +3,7 @@ chcp 65001 >nul
 setlocal enabledelayedexpansion
 
 echo =========================================
-echo   Hyperspectral Viewer 打包脚本
+echo   高光谱数据处理系统 打包脚本
 echo =========================================
 
 set "SCRIPT_DIR=%~dp0"
@@ -28,19 +28,19 @@ if exist "dist" rmdir /s /q dist
 
 echo.
 echo [4/4] 开始打包...
-pyinstaller hyperspectral.spec --clean
+pyinstaller hyperspectralDataProcessingSystem.spec --clean
 
 echo.
 echo =========================================
 echo   打包完成!
 echo =========================================
 echo.
-echo 输出目录: dist\HyperspectralViewer\
-echo 可执行文件: dist\HyperspectralViewer\HyperspectralViewer.exe
+echo 输出目录: dist\HyperspectralDataProcessingSystem\
+echo 可执行文件: dist\HyperspectralDataProcessingSystem\HyperspectralDataProcessingSystem.exe
 echo.
 echo 运行方式:
-echo   cd dist\HyperspectralViewer
-echo   HyperspectralViewer.exe
+echo   cd dist\HyperspectralDataProcessingSystem
+echo   HyperspectralDataProcessingSystem.exe
 echo.
 
 endlocal
