@@ -9,13 +9,14 @@ from .file_browser import FileBrowserWidget
 from .spectrum_plot import SpectrumPlotWidget
 from .image_view import ImageViewWidget
 from .preprocessing_panel import PreprocessingPanel
+from .training_panel import TrainingPanel
 
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         
-        self.setWindowTitle("Hyperspectral Data Viewer")
+        self.setWindowTitle("Hyperspectral Data Processing System")
         self.setMinimumSize(1200, 800)
         
         self.current_data = None
@@ -52,6 +53,14 @@ class MainWindow(QMainWindow):
         
         view_menu.addAction(reset_action)
         
+        model_menu = menubar.addMenu("Model")
+        
+        train_action = QAction("Train Model...", self)
+        train_action.setShortcut("Ctrl+T")
+        train_action.triggered.connect(self._show_training_panel)
+        
+        model_menu.addAction(train_action)
+        
         help_menu = menubar.addMenu("Help")
         
         about_action = QAction("About", self)
@@ -63,7 +72,12 @@ class MainWindow(QMainWindow):
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
         
-        main_layout = QHBoxLayout(central_widget)
+        main_layout = QVBoxLayout(central_widget)
+        
+        self.tab_widget = QTabWidget()
+        
+        preview_widget = QWidget()
+        preview_layout = QHBoxLayout(preview_widget)
         
         left_panel = QWidget()
         left_layout = QVBoxLayout(left_panel)
@@ -77,15 +91,11 @@ class MainWindow(QMainWindow):
         right_panel = QWidget()
         right_layout = QVBoxLayout(right_panel)
         
-        self.tab_widget = QTabWidget()
-        
         self.spectrum_plot = SpectrumPlotWidget()
         self.image_view = ImageViewWidget()
         
-        self.tab_widget.addTab(self.spectrum_plot, "Spectrum")
-        self.tab_widget.addTab(self.image_view, "Image")
-        
-        right_layout.addWidget(self.tab_widget)
+        right_layout.addWidget(self.spectrum_plot, stretch=1)
+        right_layout.addWidget(self.image_view, stretch=1)
         
         splitter = QSplitter(Qt.Orientation.Horizontal)
         splitter.addWidget(left_panel)
@@ -93,7 +103,14 @@ class MainWindow(QMainWindow):
         splitter.setStretchFactor(0, 1)
         splitter.setStretchFactor(1, 3)
         
-        main_layout.addWidget(splitter)
+        preview_layout.addWidget(splitter)
+        
+        self.training_panel = TrainingPanel()
+        
+        self.tab_widget.addTab(preview_widget, "Preview")
+        self.tab_widget.addTab(self.training_panel, "Model Training")
+        
+        main_layout.addWidget(self.tab_widget)
 
     def _connect_signals(self):
         self.file_browser.folder_selected.connect(self._on_folder_selected)
@@ -205,11 +222,14 @@ class MainWindow(QMainWindow):
         if hasattr(self, 'loaded_data'):
             self.loaded_data = {}
 
+    def _show_training_panel(self):
+        self.tab_widget.setCurrentIndex(1)
+
     def _show_about(self):
         QMessageBox.about(
             self, 
             "About",
-            "Hyperspectral Data Viewer\n\n"
+            "Hyperspectral Data Processing System\n\n"
             "A tool for viewing and processing hyperspectral data.\n\n"
             "Supported format: iSpecField (.isf)"
         )
