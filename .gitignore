@@ -1,3 +1,4 @@
+/__pycache__
 /build
 /dist
 /venv
@@ -5,7 +6,6 @@
 /xlsxdata
 
 # Python
-__pycache__/
 *.py[cod]
 *$py.class
 *.so
