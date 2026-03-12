@@ -3,6 +3,7 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                              QTextEdit, QDoubleSpinBox, QProgressBar)
 from PyQt6.QtCore import Qt, pyqtSignal
 import os
+from ..core.i18n import t
 
 
 class TrainingPanel(QWidget):
@@ -17,11 +18,11 @@ class TrainingPanel(QWidget):
     def _init_ui(self):
         main_layout = QVBoxLayout(self)
         
-        data_group = QGroupBox("Training Data")
+        self.data_group = QGroupBox(t("training_data"))
         data_layout = QVBoxLayout()
         
         data_path_layout = QHBoxLayout()
-        self.data_path_label = QLabel("Data Directory:")
+        self.data_path_label = QLabel(t("data_directory") + ":")
         self.data_path_label.setWordWrap(True)
         data_path_layout.addWidget(self.data_path_label)
         
@@ -31,26 +32,26 @@ class TrainingPanel(QWidget):
         
         data_layout.addLayout(data_path_layout)
         
-        self.data_info_label = QLabel("No directory selected")
+        self.data_info_label = QLabel(t("no_directory_selected"))
         self.data_info_label.setWordWrap(True)
         self.data_info_label.setStyleSheet("color: gray;")
         data_layout.addWidget(self.data_info_label)
         
-        data_group.setLayout(data_layout)
+        self.data_group.setLayout(data_layout)
         
-        model_group = QGroupBox("Model Settings")
+        self.model_group = QGroupBox(t("model_settings"))
         model_layout = QVBoxLayout()
         
         model_type_layout = QHBoxLayout()
-        model_type_layout.addWidget(QLabel("Model Type:"))
+        model_type_layout.addWidget(QLabel(t("model_type") + ":"))
         self.model_type_combo = QComboBox()
-        self.model_type_combo.addItems(["Random Forest", "SVM", "Gradient Boosting"])
+        self.model_type_combo.addItems([t("random_forest"), t("svm"), t("gradient_boosting")])
         model_type_layout.addWidget(self.model_type_combo)
         model_type_layout.addStretch()
         model_layout.addLayout(model_type_layout)
         
         test_size_layout = QHBoxLayout()
-        test_size_layout.addWidget(QLabel("Test Size:"))
+        test_size_layout.addWidget(QLabel(t("test_size") + ":"))
         self.test_size_spin = QDoubleSpinBox()
         self.test_size_spin.setRange(0.1, 0.5)
         self.test_size_spin.setValue(0.2)
@@ -60,20 +61,20 @@ class TrainingPanel(QWidget):
         test_size_layout.addStretch()
         model_layout.addLayout(test_size_layout)
         
-        model_group.setLayout(model_layout)
+        self.model_group.setLayout(model_layout)
         
-        self.train_btn = QPushButton("Start Training")
+        self.train_btn = QPushButton(t("start_training"))
         self.train_btn.setEnabled(False)
         self.train_btn.clicked.connect(self._start_training)
         
-        self.save_btn = QPushButton("Save Model")
+        self.save_btn = QPushButton(t("save_model"))
         self.save_btn.setEnabled(False)
         self.save_btn.clicked.connect(self._save_model)
         
         self.progress_bar = QProgressBar()
         self.progress_bar.setVisible(False)
         
-        result_group = QGroupBox("Results")
+        self.result_group = QGroupBox(t("results"))
         result_layout = QVBoxLayout()
         
         self.result_text = QTextEdit()
@@ -81,14 +82,14 @@ class TrainingPanel(QWidget):
         self.result_text.setMaximumHeight(150)
         result_layout.addWidget(self.result_text)
         
-        result_group.setLayout(result_layout)
+        self.result_group.setLayout(result_layout)
         
-        main_layout.addWidget(data_group)
-        main_layout.addWidget(model_group)
+        main_layout.addWidget(self.data_group)
+        main_layout.addWidget(self.model_group)
         main_layout.addWidget(self.train_btn)
         main_layout.addWidget(self.save_btn)
         main_layout.addWidget(self.progress_bar)
-        main_layout.addWidget(result_group)
+        main_layout.addWidget(self.result_group)
         main_layout.addStretch()
     
     def _select_data_directory(self):
@@ -107,7 +108,7 @@ class TrainingPanel(QWidget):
                      if os.path.isdir(os.path.join(directory, d))]
         
         if not categories:
-            self.data_info_label.setText("No category subdirectories found")
+            self.data_info_label.setText(t("no_category_found"))
             self.train_btn.setEnabled(False)
             return
         
@@ -140,9 +141,9 @@ class TrainingPanel(QWidget):
             from ..core.model_trainer import SpectrumClassifier
             
             model_type_map = {
-                "Random Forest": "rf",
-                "SVM": "svm",
-                "Gradient Boosting": "gb"
+                t("random_forest"): "rf",
+                t("svm"): "svm",
+                t("gradient_boosting"): "gb"
             }
             model_type = model_type_map[self.model_type_combo.currentText()]
             
@@ -215,3 +216,12 @@ class TrainingPanel(QWidget):
                 self.result_text.append(f"\nModel saved to: {filepath}")
             except Exception as e:
                 self.result_text.append(f"Error saving model: {str(e)}")
+    
+    def refresh_text(self):
+        self.data_group.setTitle(t("training_data"))
+        self.model_group.setTitle(t("model_settings"))
+        self.result_group.setTitle(t("results"))
+        self.data_path_label.setText(t("data_directory") + ":")
+        self.select_data_btn.setText("Select...")
+        self.train_btn.setText(t("start_training"))
+        self.save_btn.setText(t("save_model"))

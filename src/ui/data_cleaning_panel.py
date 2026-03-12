@@ -7,6 +7,7 @@ from PyQt6.QtCore import Qt, pyqtSignal
 import os
 import numpy as np
 from typing import List, Dict
+from ..core.i18n import t
 
 
 class DataCleaningPanel(QWidget):
@@ -28,15 +29,15 @@ class DataCleaningPanel(QWidget):
         
         main_layout = QVBoxLayout(self)
         
-        data_group = QGroupBox("Data Source")
+        self.data_group = QGroupBox(t("data_source"))
         data_layout = QVBoxLayout()
         
         data_path_layout = QHBoxLayout()
-        self.data_path_label = QLabel("No directory selected")
+        self.data_path_label = QLabel(t("no_folder_selected"))
         self.data_path_label.setWordWrap(True)
         data_path_layout.addWidget(self.data_path_label)
         
-        self.select_data_btn = QPushButton("Select Folder...")
+        self.select_data_btn = QPushButton(t("select_folder"))
         self.select_data_btn.clicked.connect(self._select_data_folder)
         data_path_layout.addWidget(self.select_data_btn)
         
@@ -46,29 +47,29 @@ class DataCleaningPanel(QWidget):
         self.file_count_label.setStyleSheet("color: gray;")
         data_layout.addWidget(self.file_count_label)
         
-        data_group.setLayout(data_layout)
+        self.data_group.setLayout(data_layout)
         
-        options_group = QGroupBox("Detection Options")
+        self.options_group = QGroupBox(t("detection_options"))
         options_layout = QVBoxLayout()
         
         invalid_layout = QHBoxLayout()
-        self.check_invalid_cb = QCheckBox("Detect Invalid Data")
+        self.check_invalid_cb = QCheckBox(t("detect_invalid_data"))
         self.check_invalid_cb.setChecked(True)
         invalid_layout.addWidget(self.check_invalid_cb)
         invalid_layout.addStretch()
         options_layout.addLayout(invalid_layout)
         
         anomaly_layout = QHBoxLayout()
-        self.check_anomaly_cb = QCheckBox("Detect Anomalies")
+        self.check_anomaly_cb = QCheckBox(t("detect_anomalies"))
         self.check_anomaly_cb.setChecked(True)
         anomaly_layout.addWidget(self.check_anomaly_cb)
         
-        anomaly_layout.addWidget(QLabel("Method:"))
+        anomaly_layout.addWidget(QLabel(t("method") + ":"))
         self.anomaly_method_combo = QComboBox()
         self.anomaly_method_combo.addItems(["IQR", "Z-Score"])
         anomaly_layout.addWidget(self.anomaly_method_combo)
         
-        anomaly_layout.addWidget(QLabel("Threshold:"))
+        anomaly_layout.addWidget(QLabel(t("threshold") + ":"))
         self.anomaly_threshold_spin = QDoubleSpinBox()
         self.anomaly_threshold_spin.setRange(1.0, 5.0)
         self.anomaly_threshold_spin.setValue(3.0)
@@ -78,11 +79,11 @@ class DataCleaningPanel(QWidget):
         options_layout.addLayout(anomaly_layout)
         
         duplicate_layout = QHBoxLayout()
-        self.check_duplicate_cb = QCheckBox("Detect Duplicates")
+        self.check_duplicate_cb = QCheckBox(t("detect_duplicates"))
         self.check_duplicate_cb.setChecked(True)
         duplicate_layout.addWidget(self.check_duplicate_cb)
         
-        duplicate_layout.addWidget(QLabel("Similarity:"))
+        duplicate_layout.addWidget(QLabel(t("similarity") + ":"))
         self.similarity_threshold_spin = QDoubleSpinBox()
         self.similarity_threshold_spin.setRange(0.8, 1.0)
         self.similarity_threshold_spin.setValue(0.99)
@@ -92,25 +93,25 @@ class DataCleaningPanel(QWidget):
         duplicate_layout.addStretch()
         options_layout.addLayout(duplicate_layout)
         
-        options_group.setLayout(options_layout)
+        self.options_group.setLayout(options_layout)
         
-        self.analyze_btn = QPushButton("Start Analysis")
+        self.analyze_btn = QPushButton(t("start_analysis"))
         self.analyze_btn.clicked.connect(self._start_analysis)
         self.analyze_btn.setEnabled(False)
         
         self.progress_bar = QProgressBar()
         self.progress_bar.setVisible(False)
         
-        results_group = QGroupBox("Analysis Results")
+        results_group = QGroupBox(t("analysis_results"))
         results_layout = QVBoxLayout()
         
         self.issues_table = QTableWidget()
         self.issues_table.setColumnCount(4)
-        self.issues_table.setHorizontalHeaderLabels(["File", "Type", "Severity", "Description"])
+        self.issues_table.setHorizontalHeaderLabels([t("file_col"), t("type_col"), t("severity_col"), t("description_col")])
         self.issues_table.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
         self.issues_table.itemClicked.connect(self._on_issue_clicked)
         
-        preview_group = QGroupBox("Spectrum Preview")
+        preview_group = QGroupBox(t("spectrum_preview"))
         preview_layout = QVBoxLayout()
         
         try:
@@ -142,15 +143,15 @@ class DataCleaningPanel(QWidget):
         
         results_group.setLayout(results_layout)
         
-        action_group = QGroupBox("Actions")
+        action_group = QGroupBox(t("actions"))
         action_layout = QHBoxLayout()
         
-        self.export_btn = QPushButton("Export Report")
+        self.export_btn = QPushButton(t("export_report"))
         self.export_btn.clicked.connect(self._export_report)
         self.export_btn.setEnabled(False)
         action_layout.addWidget(self.export_btn)
         
-        self.clear_btn = QPushButton("Clear")
+        self.clear_btn = QPushButton(t("clear"))
         self.clear_btn.clicked.connect(self._clear_results)
         action_layout.addWidget(self.clear_btn)
         
@@ -616,3 +617,14 @@ class DataCleaningPanel(QWidget):
                     self.preview_ax.set_title(f"{filename} - No Data")
                     self.preview_ax.axis('off')
                 self.preview_canvas.figure.canvas.draw()
+    
+    def refresh_text(self):
+        self.data_group.setTitle(t("data_source"))
+        self.options_group.setTitle(t("detection_options"))
+        self.results_group.setTitle(t("analysis_results"))
+        self.preview_group.setTitle(t("spectrum_preview"))
+        self.action_group.setTitle(t("actions"))
+        self.select_data_btn.setText(t("select_folder"))
+        self.analyze_btn.setText(t("start_analysis"))
+        self.export_btn.setText(t("export_report"))
+        self.clear_btn.setText(t("clear"))

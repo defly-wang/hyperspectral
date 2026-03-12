@@ -145,8 +145,22 @@ class MainWindow(QMainWindow):
     
     def _refresh_ui(self):
         self.setWindowTitle(t("window_title"))
-        self._create_menu_bar()
         self.statusBar().showMessage(t("ready"))
+        
+        self.menuBar().clear()
+        self._create_menu_bar()
+        
+        current_index = self.tab_widget.currentIndex()
+        self.tab_widget.setTabText(0, t("preview"))
+        self.tab_widget.setTabText(1, t("data_cleaning"))
+        self.tab_widget.setTabText(2, t("model_training"))
+        self.tab_widget.setTabText(3, t("recognition_tab"))
+        self.tab_widget.setCurrentIndex(current_index)
+        
+        self.preprocessing_panel.refresh_text()
+        self.data_cleaning_panel.refresh_text()
+        self.training_panel.refresh_text()
+        self.recognition_panel.refresh_text()
 
     def _connect_signals(self):
         self.file_browser.folder_selected.connect(self._on_folder_selected)

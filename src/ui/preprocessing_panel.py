@@ -2,6 +2,7 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                              QComboBox, QPushButton, QGroupBox, QCheckBox,
                              QSpinBox, QDoubleSpinBox)
 from PyQt6.QtCore import Qt, pyqtSignal
+from ..core.i18n import t
 
 
 class PreprocessingPanel(QWidget):
@@ -12,11 +13,11 @@ class PreprocessingPanel(QWidget):
         
         main_layout = QVBoxLayout(self)
         
-        smoothing_group = QGroupBox("Smoothing")
+        self.smoothing_group = QGroupBox(t("smoothing"))
         smoothing_layout = QVBoxLayout()
         
         self.smooth_combo = QComboBox()
-        self.smooth_combo.addItems(["None", "Savitzky-Golay", "Moving Average"])
+        self.smooth_combo.addItems([t("none"), t("savitzky_golay"), t("moving_average")])
         
         smooth_params_layout = QHBoxLayout()
         smooth_params_layout.addWidget(QLabel("Window:"))
@@ -35,25 +36,25 @@ class PreprocessingPanel(QWidget):
         
         smoothing_layout.addWidget(self.smooth_combo)
         smoothing_layout.addLayout(smooth_params_layout)
-        smoothing_group.setLayout(smoothing_layout)
+        self.smoothing_group.setLayout(smoothing_layout)
         
-        normalization_group = QGroupBox("Normalization")
+        self.normalization_group = QGroupBox(t("normalization"))
         norm_layout = QVBoxLayout()
         
         self.norm_combo = QComboBox()
-        self.norm_combo.addItems(["None", "Min-Max", "Z-Score"])
+        self.norm_combo.addItems([t("none"), t("min_max"), t("z_score")])
         norm_layout.addWidget(self.norm_combo)
         
-        normalization_group.setLayout(norm_layout)
+        self.normalization_group.setLayout(norm_layout)
         
-        baseline_group = QGroupBox("Baseline Correction")
+        self.baseline_group = QGroupBox(t("baseline_correction"))
         baseline_layout = QVBoxLayout()
         
         self.baseline_combo = QComboBox()
-        self.baseline_combo.addItems(["None", "AirPLS", "Subtract Baseline"])
+        self.baseline_combo.addItems([t("none"), t("airpls"), t("subtract_baseline")])
         baseline_layout.addWidget(self.baseline_combo)
         
-        baseline_group.setLayout(baseline_layout)
+        self.baseline_group.setLayout(baseline_layout)
         
         options_group = QGroupBox("Display Options")
         options_layout = QVBoxLayout()
@@ -89,14 +90,14 @@ class PreprocessingPanel(QWidget):
 
     def _update_params_visibility(self):
         smooth_type = self.smooth_combo.currentText()
-        self.smooth_window.setEnabled(smooth_type != "None")
-        self.smooth_order.setEnabled(smooth_type == "Savitzky-Golay")
+        self.smooth_window.setEnabled(smooth_type != t("none"))
+        self.smooth_order.setEnabled(smooth_type == t("savitzky_golay"))
 
     def get_smoothing_method(self) -> str:
         text = self.smooth_combo.currentText()
-        if text == "Savitzky-Golay":
+        if text == t("savitzky_golay"):
             return "Savitzky-Golay"
-        elif text == "Moving Average":
+        elif text == t("moving_average"):
             return "Moving Average"
         return "None"
 
@@ -114,3 +115,8 @@ class PreprocessingPanel(QWidget):
 
     def show_original(self) -> bool:
         return self.show_original_check.isChecked()
+    
+    def refresh_text(self):
+        self.smoothing_group.setTitle(t("smoothing"))
+        self.normalization_group.setTitle(t("normalization"))
+        self.baseline_group.setTitle(t("baseline_correction"))

@@ -4,6 +4,7 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
 from PyQt6.QtCore import Qt, pyqtSignal
 import os
 import numpy as np
+from ..core.i18n import t
 
 
 class RecognitionPanel(QWidget):
@@ -18,7 +19,7 @@ class RecognitionPanel(QWidget):
     def _init_ui(self):
         main_layout = QVBoxLayout(self)
         
-        model_group = QGroupBox("Model")
+        self.model_group = QGroupBox(t("model"))
         model_layout = QVBoxLayout()
         
         model_path_layout = QHBoxLayout()
@@ -26,7 +27,7 @@ class RecognitionPanel(QWidget):
         self.model_path_label.setWordWrap(True)
         model_path_layout.addWidget(self.model_path_label)
         
-        self.load_model_btn = QPushButton("Load Model...")
+        self.load_model_btn = QPushButton(t("load_model_btn"))
         self.load_model_btn.clicked.connect(self._load_model)
         model_path_layout.addWidget(self.load_model_btn)
         
@@ -37,18 +38,18 @@ class RecognitionPanel(QWidget):
         self.model_info_label.setStyleSheet("color: gray;")
         model_layout.addWidget(self.model_info_label)
         
-        model_group.setLayout(model_layout)
+        self.model_group.setLayout(model_layout)
         
-        file_group = QGroupBox("Recognition Files")
+        self.file_group = QGroupBox(t("recognition_files"))
         file_layout = QVBoxLayout()
         
         file_btn_layout = QHBoxLayout()
-        self.select_files_btn = QPushButton("Select Files...")
+        self.select_files_btn = QPushButton(t("select_files"))
         self.select_files_btn.clicked.connect(self._select_files)
         self.select_files_btn.setEnabled(False)
         file_btn_layout.addWidget(self.select_files_btn)
         
-        self.clear_files_btn = QPushButton("Clear")
+        self.clear_files_btn = QPushButton(t("clear"))
         self.clear_files_btn.clicked.connect(self._clear_files)
         self.clear_files_btn.setEnabled(False)
         file_btn_layout.addWidget(self.clear_files_btn)
@@ -60,25 +61,25 @@ class RecognitionPanel(QWidget):
         self.file_list.setMaximumHeight(150)
         file_layout.addWidget(self.file_list)
         
-        file_group.setLayout(file_layout)
+        self.file_group.setLayout(file_layout)
         
-        self.recognize_btn = QPushButton("Start Recognition")
+        self.recognize_btn = QPushButton(t("start_recognition"))
         self.recognize_btn.clicked.connect(self._start_recognition)
         self.recognize_btn.setEnabled(False)
         
-        result_group = QGroupBox("Recognition Results")
+        self.result_group = QGroupBox(t("recognition_results"))
         result_layout = QVBoxLayout()
         
         self.result_text = QTextEdit()
         self.result_text.setReadOnly(True)
         result_layout.addWidget(self.result_text)
         
-        result_group.setLayout(result_layout)
+        self.result_group.setLayout(result_layout)
         
-        main_layout.addWidget(model_group)
-        main_layout.addWidget(file_group)
+        main_layout.addWidget(self.model_group)
+        main_layout.addWidget(self.file_group)
         main_layout.addWidget(self.recognize_btn)
-        main_layout.addWidget(result_group)
+        main_layout.addWidget(self.result_group)
         main_layout.addStretch()
     
     def _load_model(self):
@@ -222,3 +223,12 @@ class RecognitionPanel(QWidget):
                 
             except Exception as e:
                 QMessageBox.critical(self, "Error", f"Failed to load model:\n{str(e)}")
+    
+    def refresh_text(self):
+        self.model_group.setTitle(t("model"))
+        self.file_group.setTitle(t("recognition_files"))
+        self.result_group.setTitle(t("recognition_results"))
+        self.load_model_btn.setText(t("load_model_btn"))
+        self.select_files_btn.setText(t("select_files"))
+        self.clear_files_btn.setText(t("clear"))
+        self.recognize_btn.setText(t("start_recognition"))
