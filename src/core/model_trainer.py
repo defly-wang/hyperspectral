@@ -20,7 +20,7 @@ class SpectrumClassifier:
         self.max_wavelength = max_wavelength
         self.feature_length = max_wavelength - min_wavelength + 1
     
-    def load_data_from_directory(self, data_dir: str, min_wavelength: float = 500) -> Tuple[np.ndarray, np.ndarray]:
+    def load_data_from_directory(self, data_dir: str, min_wavelength: float = 400) -> Tuple[np.ndarray, np.ndarray]:
         X = []
         y = []
         

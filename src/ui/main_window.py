@@ -11,6 +11,7 @@ from .image_view import ImageViewWidget
 from .preprocessing_panel import PreprocessingPanel
 from .training_panel import TrainingPanel
 from .recognition_panel import RecognitionPanel
+from .data_cleaning_panel import DataCleaningPanel
 
 
 class MainWindow(QMainWindow):
@@ -118,8 +119,10 @@ class MainWindow(QMainWindow):
         
         self.training_panel = TrainingPanel()
         self.recognition_panel = RecognitionPanel()
+        self.data_cleaning_panel = DataCleaningPanel()
         
         self.tab_widget.addTab(preview_widget, "Preview")
+        self.tab_widget.addTab(self.data_cleaning_panel, "Data Cleaning")
         self.tab_widget.addTab(self.training_panel, "Model Training")
         self.tab_widget.addTab(self.recognition_panel, "Recognition")
         
@@ -189,7 +192,7 @@ class MainWindow(QMainWindow):
                 continue
             
             data = self.loaded_data[filepath]
-            mask = data.wavelengths >= 500
+            mask = data.wavelengths >= 400
             wavelengths = data.wavelengths[mask]
             intensities = data.intensities[mask].copy()
             

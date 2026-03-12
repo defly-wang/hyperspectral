@@ -149,7 +149,7 @@ class RecognitionPanel(QWidget):
                     else:
                         data = parse_isf_file(filepath)
                     
-                    mask = data.wavelengths >= 500
+                    mask = data.wavelengths >= 400
                     wavelengths = data.wavelengths[mask]
                     intensities = data.intensities[mask]
                     

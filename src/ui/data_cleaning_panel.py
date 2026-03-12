@@ -1,0 +1,514 @@
+from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
+                             QPushButton, QGroupBox, QFileDialog, QTextEdit,
+                             QListWidget, QCheckBox, QSpinBox, QDoubleSpinBox,
+                             QTableWidget, QTableWidgetItem, QHeaderView,
+                             QProgressBar, QMessageBox, QComboBox, QSplitter)
+from PyQt6.QtCore import Qt, pyqtSignal
+import os
+import numpy as np
+from typing import List, Dict
+
+
+class DataCleaningPanel(QWidget):
+    cleaning_completed = pyqtSignal(dict)
+    
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        
+        self.data_cleaner = None
+        self.loaded_files = []
+        self.file_data = {}
+        self.all_issues = []
+        
+        self._init_ui()
+    
+    def _init_ui(self):
+        from ..core.data_cleaner import DataCleaner
+        self.data_cleaner = DataCleaner()
+        
+        main_layout = QVBoxLayout(self)
+        
+        data_group = QGroupBox("Data Source")
+        data_layout = QVBoxLayout()
+        
+        data_path_layout = QHBoxLayout()
+        self.data_path_label = QLabel("No directory selected")
+        self.data_path_label.setWordWrap(True)
+        data_path_layout.addWidget(self.data_path_label)
+        
+        self.select_data_btn = QPushButton("Select Folder...")
+        self.select_data_btn.clicked.connect(self._select_data_folder)
+        data_path_layout.addWidget(self.select_data_btn)
+        
+        data_layout.addLayout(data_path_layout)
+        
+        self.file_count_label = QLabel("")
+        self.file_count_label.setStyleSheet("color: gray;")
+        data_layout.addWidget(self.file_count_label)
+        
+        data_group.setLayout(data_layout)
+        
+        options_group = QGroupBox("Detection Options")
+        options_layout = QVBoxLayout()
+        
+        invalid_layout = QHBoxLayout()
+        self.check_invalid_cb = QCheckBox("Detect Invalid Data")
+        self.check_invalid_cb.setChecked(True)
+        invalid_layout.addWidget(self.check_invalid_cb)
+        invalid_layout.addStretch()
+        options_layout.addLayout(invalid_layout)
+        
+        anomaly_layout = QHBoxLayout()
+        self.check_anomaly_cb = QCheckBox("Detect Anomalies")
+        self.check_anomaly_cb.setChecked(True)
+        anomaly_layout.addWidget(self.check_anomaly_cb)
+        
+        anomaly_layout.addWidget(QLabel("Method:"))
+        self.anomaly_method_combo = QComboBox()
+        self.anomaly_method_combo.addItems(["IQR", "Z-Score"])
+        anomaly_layout.addWidget(self.anomaly_method_combo)
+        
+        anomaly_layout.addWidget(QLabel("Threshold:"))
+        self.anomaly_threshold_spin = QDoubleSpinBox()
+        self.anomaly_threshold_spin.setRange(1.0, 5.0)
+        self.anomaly_threshold_spin.setValue(3.0)
+        self.anomaly_threshold_spin.setSingleStep(0.5)
+        anomaly_layout.addWidget(self.anomaly_threshold_spin)
+        anomaly_layout.addStretch()
+        options_layout.addLayout(anomaly_layout)
+        
+        duplicate_layout = QHBoxLayout()
+        self.check_duplicate_cb = QCheckBox("Detect Duplicates")
+        self.check_duplicate_cb.setChecked(True)
+        duplicate_layout.addWidget(self.check_duplicate_cb)
+        
+        duplicate_layout.addWidget(QLabel("Similarity:"))
+        self.similarity_threshold_spin = QDoubleSpinBox()
+        self.similarity_threshold_spin.setRange(0.8, 1.0)
+        self.similarity_threshold_spin.setValue(0.99)
+        self.similarity_threshold_spin.setSingleStep(0.01)
+        self.similarity_threshold_spin.setSuffix(" (correlation)")
+        duplicate_layout.addWidget(self.similarity_threshold_spin)
+        duplicate_layout.addStretch()
+        options_layout.addLayout(duplicate_layout)
+        
+        options_group.setLayout(options_layout)
+        
+        self.analyze_btn = QPushButton("Start Analysis")
+        self.analyze_btn.clicked.connect(self._start_analysis)
+        self.analyze_btn.setEnabled(False)
+        
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setVisible(False)
+        
+        results_group = QGroupBox("Analysis Results")
+        results_layout = QVBoxLayout()
+        
+        self.issues_table = QTableWidget()
+        self.issues_table.setColumnCount(4)
+        self.issues_table.setHorizontalHeaderLabels(["File", "Type", "Severity", "Description"])
+        self.issues_table.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
+        self.issues_table.itemClicked.connect(self._on_issue_clicked)
+        
+        preview_group = QGroupBox("Spectrum Preview")
+        preview_layout = QVBoxLayout()
+        
+        try:
+            from matplotlib.figure import Figure
+            from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
+            self.preview_canvas = FigureCanvasQTAgg(Figure(figsize=(8, 6)))
+            preview_layout.addWidget(self.preview_canvas)
+            self.preview_ax = self.preview_canvas.figure.add_subplot(111)
+        except ImportError:
+            self.preview_canvas = None
+            preview_layout.addWidget(QLabel("Matplotlib not available"))
+        
+        preview_group.setLayout(preview_layout)
+        
+        self.result_summary = QTextEdit()
+        self.result_summary.setReadOnly(True)
+        
+        bottom_splitter = QSplitter(Qt.Orientation.Horizontal)
+        bottom_splitter.addWidget(self.result_summary)
+        bottom_splitter.addWidget(preview_group)
+        
+        main_splitter = QSplitter(Qt.Orientation.Vertical)
+        main_splitter.addWidget(self.issues_table)
+        main_splitter.addWidget(bottom_splitter)
+        main_splitter.setStretchFactor(0, 1)
+        main_splitter.setStretchFactor(1, 1)
+        
+        results_layout.addWidget(main_splitter, 1)
+        
+        results_group.setLayout(results_layout)
+        
+        action_group = QGroupBox("Actions")
+        action_layout = QHBoxLayout()
+        
+        self.export_btn = QPushButton("Export Report")
+        self.export_btn.clicked.connect(self._export_report)
+        self.export_btn.setEnabled(False)
+        action_layout.addWidget(self.export_btn)
+        
+        self.clear_btn = QPushButton("Clear")
+        self.clear_btn.clicked.connect(self._clear_results)
+        action_layout.addWidget(self.clear_btn)
+        
+        action_layout.addStretch()
+        action_group.setLayout(action_layout)
+        
+        main_layout.addWidget(data_group)
+        main_layout.addWidget(options_group)
+        main_layout.addWidget(self.analyze_btn)
+        main_layout.addWidget(self.progress_bar)
+        main_layout.addWidget(results_group)
+        main_layout.addWidget(action_group)
+    
+    def _select_data_folder(self):
+        directory = QFileDialog.getExistingDirectory(
+            self, "Select Data Directory", 
+            os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+        )
+        
+        if directory:
+            self.data_dir = directory
+            self.data_path_label.setText(f"Data: {directory}")
+            
+            isf_files = [f for f in os.listdir(directory) if f.lower().endswith('.isf')]
+            xlsx_files = [f for f in os.listdir(directory) if f.lower().endswith(('.xlsx', '.xls'))]
+            all_files = isf_files + xlsx_files
+            
+            self.loaded_files = [os.path.join(directory, f) for f in all_files]
+            self.file_count_label.setText(f"Found {len(self.loaded_files)} files")
+            
+            if self.loaded_files:
+                self.analyze_btn.setEnabled(True)
+            else:
+                self.file_count_label.setText("No data files found")
+    
+    def _start_analysis(self):
+        if not self.loaded_files:
+            return
+        
+        self.analyze_btn.setEnabled(False)
+        self.progress_bar.setVisible(True)
+        self.progress_bar.setValue(0)
+        self.result_summary.clear()
+        self.issues_table.setRowCount(0)
+        self.all_issues = []
+        self.file_data = {}
+        
+        try:
+            from ..core.isf_reader import parse_isf_file
+            from ..core.xlsx_reader import parse_xlsx_file
+            
+            self.result_summary.append("Loading files...")
+            self.progress_bar.setValue(10)
+            
+            total_files = len(self.loaded_files)
+            
+            for idx, filepath in enumerate(self.loaded_files):
+                try:
+                    ext = os.path.splitext(filepath)[1].lower()
+                    if ext in ('.xlsx', '.xls'):
+                        data = parse_xlsx_file(filepath)
+                    else:
+                        data = parse_isf_file(filepath)
+                    
+                    if data.wavelengths is None or data.intensities is None:
+                        self.all_issues.append({
+                            'file': os.path.basename(filepath),
+                            'type': 'invalid_file',
+                            'severity': 'high',
+                            'description': '文件无有效数据（wavelengths或intensities为空）',
+                            'full_path': filepath
+                        })
+                        continue
+                    
+                    if len(data.wavelengths) == 0 or len(data.intensities) == 0:
+                        self.all_issues.append({
+                            'file': os.path.basename(filepath),
+                            'type': 'invalid_file',
+                            'severity': 'high',
+                            'description': '文件数据为空',
+                            'full_path': filepath
+                        })
+                        continue
+                    
+                    mask = data.wavelengths >= 400
+                    filtered_wl = data.wavelengths[mask]
+                    filtered_int = data.intensities[mask]
+                    
+                    if len(filtered_wl) == 0:
+                        self.all_issues.append({
+                            'file': os.path.basename(filepath),
+                            'type': 'invalid_file',
+                            'severity': 'high',
+                            'description': '过滤400nm后无有效数据',
+                            'full_path': filepath
+                        })
+                        continue
+                    
+                    if len(filtered_wl) < 10:
+                        self.all_issues.append({
+                            'file': os.path.basename(filepath),
+                            'type': 'insufficient_data',
+                            'severity': 'medium',
+                            'description': f'有效数据点过少（{len(filtered_wl)}个），建议至少10个点',
+                            'full_path': filepath
+                        })
+                    
+                    self.file_data[filepath] = {
+                        'wavelengths': filtered_wl,
+                        'intensities': filtered_int,
+                        'filename': os.path.basename(filepath)
+                    }
+                    
+                except Exception as e:
+                    self.all_issues.append({
+                        'file': os.path.basename(filepath),
+                        'type': 'invalid_file',
+                        'severity': 'high',
+                        'description': f'文件读取失败: {str(e)}',
+                        'full_path': filepath
+                    })
+                
+                progress = 10 + int((idx + 1) / total_files * 30)
+                self.progress_bar.setValue(progress)
+            
+            self.result_summary.append(f"Loaded {len(self.file_data)} files successfully\n")
+            
+            self._detect_issues()
+            
+            self.progress_bar.setValue(100)
+            self.analyze_btn.setEnabled(True)
+            self.export_btn.setEnabled(len(self.all_issues) > 0)
+            
+            self.cleaning_completed.emit({'issues': self.all_issues})
+            
+        except Exception as e:
+            self.result_summary.append(f"Error: {str(e)}\n")
+            self.analyze_btn.setEnabled(True)
+            import traceback
+            traceback.print_exc()
+    
+    def _detect_issues(self):
+        invalid_issues = []
+        anomaly_issues = []
+        duplicate_issues = []
+        
+        total_issues_expected = len(self.file_data)
+        if self.check_duplicate_cb.isChecked():
+            total_issues_expected += 1
+        
+        progress_base = 40
+        progress_per_item = 50 // max(total_issues_expected, 1)
+        
+        if self.check_invalid_cb.isChecked():
+            self.result_summary.append("\n=== Checking Invalid Data ===")
+            
+            for idx, (filepath, data) in enumerate(self.file_data.items()):
+                wavelengths = data['wavelengths']
+                intensities = data['intensities']
+                
+                issues = self.data_cleaner.check_invalid_data(
+                    wavelengths, intensities, filepath
+                )
+                
+                for issue in issues:
+                    invalid_issues.append({
+                        'file': data['filename'],
+                        'type': issue.issue_type,
+                        'severity': issue.severity,
+                        'description': issue.description,
+                        'full_path': filepath
+                    })
+                
+                progress = progress_base + (idx + 1) * progress_per_item
+                self.progress_bar.setValue(progress)
+            
+            self.result_summary.append(f"Found {len(invalid_issues)} invalid data issues\n")
+        
+        if self.check_anomaly_cb.isChecked():
+            self.result_summary.append("\n=== Checking Anomalies ===")
+            
+            method = self.anomaly_method_combo.currentText().lower().replace("-", "")
+            threshold = self.anomaly_threshold_spin.value()
+            
+            idx = 0
+            for filepath, data in self.file_data.items():
+                intensities = data['intensities']
+                
+                anomalies, anomaly_indices = self.data_cleaner.detect_anomalies(
+                    intensities, method=method, threshold=threshold
+                )
+                
+                anomaly_count = len(anomaly_indices)
+                if anomaly_count > 0:
+                    anomaly_issues.append({
+                        'file': data['filename'],
+                        'type': 'anomaly',
+                        'severity': 'medium',
+                        'description': f"Found {anomaly_count} anomalous points ({anomaly_count/len(intensities)*100:.1f}%)",
+                        'full_path': filepath,
+                        'indices': anomaly_indices
+                    })
+                
+                idx += 1
+                progress = progress_base + (idx + 1) * progress_per_item
+                self.progress_bar.setValue(progress)
+            
+            self.result_summary.append(f"Found {len(anomaly_issues)} files with anomalies\n")
+        
+        if self.check_duplicate_cb.isChecked():
+            self.result_summary.append("\n=== Checking Duplicates ===")
+            
+            self.progress_bar.setValue(90)
+            
+            spectra = []
+            paths = []
+            for filepath, data in self.file_data.items():
+                spectra.append((data['wavelengths'], data['intensities']))
+                paths.append(filepath)
+            
+            similarity = self.similarity_threshold_spin.value()
+            duplicate_issues = self.data_cleaner.detect_duplicates(
+                spectra, paths, similarity_threshold=similarity
+            )
+            
+            for issue in duplicate_issues:
+                anomaly_issues.append({
+                    'file': os.path.basename(issue.file_path),
+                    'type': issue.issue_type,
+                    'severity': issue.severity,
+                    'description': issue.description,
+                    'full_path': issue.file_path,
+                    'indices': issue.indices
+                })
+            
+            self.result_summary.append(f"Found {len(duplicate_issues)} duplicate files\n")
+        
+        self.all_issues = invalid_issues + anomaly_issues
+        self._display_results()
+    
+    def _display_results(self):
+        self.issues_table.setRowCount(len(self.all_issues))
+        
+        high_count = sum(1 for i in self.all_issues if i['severity'] == 'high')
+        medium_count = sum(1 for i in self.all_issues if i['severity'] == 'medium')
+        low_count = sum(1 for i in self.all_issues if i['severity'] == 'low')
+        
+        for row, issue in enumerate(self.all_issues):
+            self.issues_table.setItem(row, 0, QTableWidgetItem(issue['file']))
+            self.issues_table.setItem(row, 1, QTableWidgetItem(issue['type']))
+            
+            severity_item = QTableWidgetItem(issue['severity'])
+            if issue['severity'] == 'high':
+                severity_item.setBackground(Qt.GlobalColor.red)
+            elif issue['severity'] == 'medium':
+                severity_item.setBackground(Qt.GlobalColor.yellow)
+            else:
+                severity_item.setBackground(Qt.GlobalColor.green)
+            self.issues_table.setItem(row, 2, severity_item)
+            
+            self.issues_table.setItem(row, 3, QTableWidgetItem(issue['description']))
+        
+        self.result_summary.append("\n=== Summary ===")
+        self.result_summary.append(f"Total issues: {len(self.all_issues)}")
+        self.result_summary.append(f"  - High: {high_count}")
+        self.result_summary.append(f"  - Medium: {medium_count}")
+        self.result_summary.append(f"  - Low: {low_count}")
+        
+        if high_count > 0:
+            self.result_summary.append(f"\nWarning: {high_count} high severity issues detected!")
+            self.result_summary.append("Please review and clean these files before modeling.")
+    
+    def _export_report(self):
+        if not self.all_issues:
+            return
+        
+        filepath, _ = QFileDialog.getSaveFileName(
+            self, "Save Report", "data_cleaning_report.txt", 
+            "Text Files (*.txt)"
+        )
+        
+        if filepath:
+            try:
+                with open(filepath, 'w', encoding='utf-8') as f:
+                    f.write("=" * 60 + "\n")
+                    f.write("Data Cleaning Report\n")
+                    f.write("=" * 60 + "\n\n")
+                    
+                    f.write(f"Total issues: {len(self.all_issues)}\n")
+                    
+                    high = [i for i in self.all_issues if i['severity'] == 'high']
+                    medium = [i for i in self.all_issues if i['severity'] == 'medium']
+                    low = [i for i in self.all_issues if i['severity'] == 'low']
+                    
+                    f.write(f"  High: {len(high)}\n")
+                    f.write(f"  Medium: {len(medium)}\n")
+                    f.write(f"  Low: {len(low)}\n\n")
+                    
+                    if high:
+                        f.write("\n=== High Severity Issues ===\n")
+                        for issue in high:
+                            f.write(f"\n[{issue['file']}]\n")
+                            f.write(f"  Type: {issue['type']}\n")
+                            f.write(f"  Description: {issue['description']}\n")
+                    
+                    if medium:
+                        f.write("\n=== Medium Severity Issues ===\n")
+                        for issue in medium:
+                            f.write(f"\n[{issue['file']}]\n")
+                            f.write(f"  Type: {issue['type']}\n")
+                            f.write(f"  Description: {issue['description']}\n")
+                    
+                    if low:
+                        f.write("\n=== Low Severity Issues ===\n")
+                        for issue in low:
+                            f.write(f"\n[{issue['file']}]\n")
+                            f.write(f"  Type: {issue['type']}\n")
+                            f.write(f"  Description: {issue['description']}\n")
+                
+                QMessageBox.information(self, "Success", f"Report saved to:\n{filepath}")
+                
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"Failed to save report:\n{str(e)}")
+    
+    def _clear_results(self):
+        self.issues_table.setRowCount(0)
+        self.result_summary.clear()
+        self.all_issues = []
+        self.file_data = {}
+        self.export_btn.setEnabled(False)
+        if hasattr(self, 'preview_ax'):
+            self.preview_ax.clear()
+            self.preview_canvas.figure.canvas.draw()
+    
+    def _on_issue_clicked(self, item):
+        row = item.row()
+        if row < len(self.all_issues):
+            issue = self.all_issues[row]
+            filename = issue.get('file', '')
+            full_path = issue.get('full_path', '')
+            
+            data = None
+            if full_path and full_path in self.file_data:
+                data = self.file_data[full_path]
+            elif filename:
+                for path, d in self.file_data.items():
+                    if d.get('filename') == filename:
+                        data = d
+                        break
+            
+            if data is not None and hasattr(self, 'preview_ax'):
+                wavelengths = data.get('wavelengths', [])
+                intensities = data.get('intensities', [])
+                
+                self.preview_ax.clear()
+                self.preview_ax.plot(wavelengths, intensities, 'b-', linewidth=1)
+                self.preview_ax.set_xlabel('Wavelength (nm)')
+                self.preview_ax.set_ylabel('Intensity')
+                self.preview_ax.set_title(f"{filename}")
+                self.preview_ax.grid(True, alpha=0.3)
+                self.preview_canvas.figure.canvas.draw()

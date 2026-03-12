@@ -1,6 +1,7 @@
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, 
                              QListWidget, QListWidgetItem, QLabel, QFileDialog)
 from PyQt6.QtCore import Qt, pyqtSignal
+import os
 
 
 class FileBrowserWidget(QWidget):
@@ -46,8 +47,11 @@ class FileBrowserWidget(QWidget):
         self.file_list.clear()
         self.file_paths.clear()
         
-        for filepath in files:
-            item = QListWidgetItem(filepath)
+        sorted_files = sorted(files, key=lambda x: os.path.basename(x))
+        
+        for filepath in sorted_files:
+            item = QListWidgetItem(os.path.basename(filepath))
+            item.setData(Qt.ItemDataRole.UserRole, filepath)
             self.file_list.addItem(item)
             self.file_paths[filepath] = filepath
         
@@ -59,7 +63,7 @@ class FileBrowserWidget(QWidget):
 
     def _get_selected_files(self) -> list:
         selected_items = self.file_list.selectedItems()
-        return [self.file_paths.get(item.text(), item.text()) for item in selected_items]
+        return [item.data(Qt.ItemDataRole.UserRole) or item.text() for item in selected_items]
 
     def get_selected_files(self) -> list:
         return self._get_selected_files()

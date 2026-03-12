@@ -153,7 +153,7 @@ class TrainingPanel(QWidget):
             
             X, y = self.classifier.load_data_from_directory(
                 self.data_dir, 
-                min_wavelength=500
+                min_wavelength=400
             )
             
             self.result_text.append(f"Loaded {len(X)} samples with {X.shape[1]} features")
