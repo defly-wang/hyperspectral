@@ -12,6 +12,7 @@ from .preprocessing_panel import PreprocessingPanel
 from .training_panel import TrainingPanel
 from .recognition_panel import RecognitionPanel
 from .data_cleaning_panel import DataCleaningPanel
+from .data_split_panel import DataSplitPanel
 from ..core.i18n import t, set_language, LanguageManager
 
 
@@ -131,8 +132,10 @@ class MainWindow(QMainWindow):
         self.training_panel = TrainingPanel()
         self.recognition_panel = RecognitionPanel()
         self.data_cleaning_panel = DataCleaningPanel()
+        self.data_split_panel = DataSplitPanel()
         
         self.tab_widget.addTab(preview_widget, t("preview"))
+        self.tab_widget.addTab(self.data_split_panel, t("data_split"))
         self.tab_widget.addTab(self.data_cleaning_panel, t("data_cleaning"))
         self.tab_widget.addTab(self.training_panel, t("model_training"))
         self.tab_widget.addTab(self.recognition_panel, t("recognition_tab"))
@@ -152,12 +155,14 @@ class MainWindow(QMainWindow):
         
         current_index = self.tab_widget.currentIndex()
         self.tab_widget.setTabText(0, t("preview"))
-        self.tab_widget.setTabText(1, t("data_cleaning"))
-        self.tab_widget.setTabText(2, t("model_training"))
-        self.tab_widget.setTabText(3, t("recognition_tab"))
+        self.tab_widget.setTabText(1, t("data_split"))
+        self.tab_widget.setTabText(2, t("data_cleaning"))
+        self.tab_widget.setTabText(3, t("model_training"))
+        self.tab_widget.setTabText(4, t("recognition_tab"))
         self.tab_widget.setCurrentIndex(current_index)
         
         self.preprocessing_panel.refresh_text()
+        self.data_split_panel.refresh_text()
         self.data_cleaning_panel.refresh_text()
         self.training_panel.refresh_text()
         self.recognition_panel.refresh_text()

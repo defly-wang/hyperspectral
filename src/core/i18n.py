@@ -129,6 +129,32 @@ translations: Dict[str, Dict[str, str]] = {
         "language": "语言",
         "chinese": "中文",
         "english": "English",
+        
+        # File Operations
+        "delete_file": "删除文件",
+        "open_file_location": "打开文件位置",
+        "confirm_delete": "确认删除",
+        "confirm_delete_msg": "确定要删除文件 {filename} 吗？此操作不可撤销。",
+        "error": "错误",
+        "delete_failed": "删除失败",
+        
+        # Data Split
+        "data_split": "数据集分割",
+        "output_directory": "输出目录",
+        "split_settings": "分割设置",
+        "split_type": "分割类型",
+        "train_val_test": "训练集/验证集/测试集",
+        "train_test": "训练集/测试集",
+        "train_ratio": "训练集比例",
+        "val_ratio": "验证集比例",
+        "test_ratio": "测试集比例",
+        "shuffle_data": "随机打乱",
+        "random_seed": "随机种子",
+        "start_split": "开始分割",
+        "split_results": "分割结果",
+        "split_complete": "分割完成!",
+        "select_source_folder": "选择源文件夹",
+        "select_output_folder": "选择输出文件夹",
     },
     "en_US": {
         # Main Window
@@ -257,6 +283,32 @@ translations: Dict[str, Dict[str, str]] = {
         "language": "Language",
         "chinese": "中文",
         "english": "English",
+        
+        # File Operations
+        "delete_file": "Delete File",
+        "open_file_location": "Open File Location",
+        "confirm_delete": "Confirm Delete",
+        "confirm_delete_msg": "Are you sure you want to delete {filename}? This action cannot be undone.",
+        "error": "Error",
+        "delete_failed": "Delete failed",
+        
+        # Data Split
+        "data_split": "Data Split",
+        "output_directory": "Output Directory",
+        "split_settings": "Split Settings",
+        "split_type": "Split Type",
+        "train_val_test": "Train/Val/Test",
+        "train_test": "Train/Test",
+        "train_ratio": "Train Ratio",
+        "val_ratio": "Val Ratio",
+        "test_ratio": "Test Ratio",
+        "shuffle_data": "Shuffle Data",
+        "random_seed": "Random Seed",
+        "start_split": "Start Split",
+        "split_results": "Split Results",
+        "split_complete": "Split Complete!",
+        "select_source_folder": "Select Source Folder",
+        "select_output_folder": "Select Output Folder",
     }
 }
 

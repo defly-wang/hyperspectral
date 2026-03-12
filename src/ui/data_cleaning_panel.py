@@ -2,8 +2,9 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                              QPushButton, QGroupBox, QFileDialog, QTextEdit,
                              QListWidget, QCheckBox, QSpinBox, QDoubleSpinBox,
                              QTableWidget, QTableWidgetItem, QHeaderView,
-                             QProgressBar, QMessageBox, QComboBox, QSplitter)
+                             QProgressBar, QMessageBox, QComboBox, QSplitter, QMenu)
 from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtGui import QAction
 import os
 import numpy as np
 from typing import List, Dict
@@ -110,6 +111,8 @@ class DataCleaningPanel(QWidget):
         self.issues_table.setHorizontalHeaderLabels([t("file_col"), t("type_col"), t("severity_col"), t("description_col")])
         self.issues_table.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
         self.issues_table.itemClicked.connect(self._on_issue_clicked)
+        self.issues_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.issues_table.customContextMenuRequested.connect(self._show_context_menu)
         
         self.preview_group = QGroupBox(t("spectrum_preview"))
         preview_layout = QVBoxLayout()
@@ -628,3 +631,66 @@ class DataCleaningPanel(QWidget):
         self.analyze_btn.setText(t("start_analysis"))
         self.export_btn.setText(t("export_report"))
         self.clear_btn.setText(t("clear"))
+    
+    def _show_context_menu(self, position):
+        selected_items = self.issues_table.selectedItems()
+        if not selected_items:
+            return
+        
+        row = selected_items[0].row()
+        if row >= len(self.all_issues):
+            return
+        
+        issue = self.all_issues[row]
+        full_path = issue.get('full_path', '')
+        
+        menu = QMenu(self)
+        
+        delete_action = QAction(t("delete_file"), self)
+        delete_action.triggered.connect(lambda: self._delete_file(row))
+        menu.addAction(delete_action)
+        
+        open_location_action = QAction(t("open_file_location"), self)
+        open_location_action.triggered.connect(lambda: self._open_file_location(full_path))
+        menu.addAction(open_location_action)
+        
+        menu.exec(self.issues_table.viewport().mapToGlobal(position))
+    
+    def _delete_file(self, row):
+        if row >= len(self.all_issues):
+            return
+        
+        issue = self.all_issues[row]
+        filename = issue.get('file', '')
+        full_path = issue.get('full_path', '')
+        
+        reply = QMessageBox.question(
+            self, 
+            t("confirm_delete"),
+            t("confirm_delete_msg").format(filename=filename),
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No
+        )
+        
+        if reply == QMessageBox.StandardButton.Yes:
+            try:
+                if os.path.exists(full_path):
+                    os.remove(full_path)
+                    self.result_summary.append(f"Deleted: {filename}")
+                    
+                    self.all_issues.pop(row)
+                    
+                    self.issues_table.removeRow(row)
+                    
+                    if full_path in self.file_data:
+                        del self.file_data[full_path]
+                        
+            except Exception as e:
+                QMessageBox.critical(self, t("error"), f"{t('delete_failed')}: {str(e)}")
+    
+    def _open_file_location(self, filepath):
+        if not filepath or not os.path.exists(filepath):
+            return
+        
+        folder = os.path.dirname(filepath)
+        os.startfile(folder) if os.name == 'nt' else os.system(f'xdg-open "{folder}"')
