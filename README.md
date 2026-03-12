@@ -9,18 +9,32 @@
 - **光谱曲线显示**: 可视化波长与反射/透射率关系曲线
 - **多文件查看**: 支持单选和多选文件，多选时在同一图表中显示多条曲线
 - **伪彩色图像**: 将光谱数据转换为伪彩色图像展示
+- **文件排序**: 文件列表按文件名排序
+
+### 数据清洗
+- **无效数据检测**: 空值、NaN、无穷值、负值、超出范围值、数据长度不匹配、方差过小
+- **异常数据检测**: IQR和Z-Score两种方法，可调阈值
+- **重复数据检测**: 基于相关系数的光谱相似度检测
+- **文件格式检查**: 支持格式验证、表头检查、编码检测
+- **报告导出**: 支持导出清洗报告
+- **数据预览**: 点击问题列表查看对应光谱曲线
 
 ### 数据预处理
 - 平滑滤波 (Savitzky-Golay / 移动平均)
 - 归一化 (Min-Max / Z-Score)
 - 基线校正 (AirPLS / 基线扣除)
-- 自动过滤 500nm 以下波长数据
+- 自动过滤 400nm 以下波长数据
 
 ### 模型训练
 - 支持三种机器学习模型: Random Forest、SVM、Gradient Boosting
 - 自动从目录加载训练数据（按子目录分类）
 - 训练结果显示准确率、分类报告
 - 模型保存与加载功能
+
+### 识别
+- 加载训练好的模型进行预测
+- 支持批量识别多个文件
+- 显示识别结果及置信度
 
 ## 环境要求
 
@@ -96,12 +110,27 @@ training_data/
 3. 使用右侧预处理面板调整数据
 4. 切换 "Spectrum" 和 "Image" 标签页查看不同展示
 
+### 数据清洗
+1. 切换到 "Data Cleaning" 标签页
+2. 点击 "Select Folder..." 选择数据文件夹
+3. 配置检测选项（无效数据、异常数据、重复数据）
+4. 点击 "Start Analysis" 开始分析
+5. 查看问题列表，点击查看对应光谱曲线
+6. 可导出清洗报告
+
 ### 模型训练
 1. 切换到 "Model Training" 标签页
 2. 点击 "Select..." 选择训练数据目录（需包含分类子目录）
 3. 选择模型类型和测试集比例
 4. 点击 "Start Training" 开始训练
 5. 训练完成后可保存模型
+
+### 识别
+1. 切换到 "Recognition" 标签页
+2. 点击 "Load Model..." 加载训练好的模型
+3. 点击 "Select Files..." 选择要识别的文件
+4. 点击 "Start Recognition" 开始识别
+5. 查看识别结果及置信度
 
 ## 项目结构
 
@@ -110,26 +139,32 @@ hyperspectral/
 ├── main.py                      # 程序入口
 ├── requirements.txt              # Python 依赖
 ├── build.sh                     # 打包脚本
+├── build.bat                    # Windows打包脚本
 ├── hyperspectral.spec           # PyInstaller 配置
 └── src/
     ├── core/
     │   ├── isf_reader.py       # ISF 文件解析
     │   ├── xlsx_reader.py      # XLSX 文件解析
     │   ├── preprocessing.py    # 数据预处理
-    │   └── model_trainer.py    # 机器学习模型
+    │   ├── model_trainer.py    # 机器学习模型
+    │   └── data_cleaner.py    # 数据清洗
     └── ui/
         ├── main_window.py       # 主窗口
         ├── file_browser.py      # 文件浏览器
         ├── spectrum_plot.py     # 光谱曲线图
         ├── image_view.py        # 伪彩色图像
         ├── preprocessing_panel.py  # 预处理面板
-        └── training_panel.py    # 模型训练面板
+        ├── training_panel.py    # 模型训练面板
+        ├── recognition_panel.py # 识别面板
+        └── data_cleaning_panel.py # 数据清洗面板
 ```
 
 ## 快捷键
 
 - `Ctrl+O`: 打开文件夹
 - `Ctrl+T`: 打开模型训练面板
+- `Ctrl+M`: 加载模型
+- `Ctrl+R`: 打开识别面板
 - `Ctrl+Q`: 退出程序
 
 ## 许可证

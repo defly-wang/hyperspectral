@@ -210,6 +210,102 @@ class DataCleaningPanel(QWidget):
             for idx, filepath in enumerate(self.loaded_files):
                 try:
                     ext = os.path.splitext(filepath)[1].lower()
+                    
+                    if ext not in ('.isf', '.xlsx', '.xls'):
+                        self.all_issues.append({
+                            'file': os.path.basename(filepath),
+                            'type': 'invalid_format',
+                            'severity': 'high',
+                            'description': f'不支持的文件格式: {ext}，仅支持 .isf, .xlsx, .xls',
+                            'full_path': filepath
+                        })
+                        continue
+                    
+                    if ext in ('.xlsx', '.xls'):
+                        try:
+                            import openpyxl
+                            wb = openpyxl.load_workbook(filepath, data_only=True)
+                            ws = wb.active
+                            has_wave = False
+                            has_intensity = False
+                            for row in ws.iter_rows(max_row=10, values_only=True):
+                                if row and len(row) > 0 and row[0] is not None:
+                                    try:
+                                        float(row[0])
+                                        has_wave = True
+                                    except:
+                                        pass
+                                if row and len(row) > 4 and row[4] is not None:
+                                    try:
+                                        float(row[4])
+                                        has_intensity = True
+                                    except:
+                                        pass
+                            wb.close()
+                            if not has_wave or not has_intensity:
+                                self.all_issues.append({
+                                    'file': os.path.basename(filepath),
+                                    'type': 'invalid_format',
+                                    'severity': 'high',
+                                    'description': 'Excel文件缺少有效的波长列(第1列)或强度列(第5列)',
+                                    'full_path': filepath
+                                })
+                                continue
+                        except Exception as excel_err:
+                            self.all_issues.append({
+                                'file': os.path.basename(filepath),
+                                'type': 'invalid_format',
+                                'severity': 'high',
+                                'description': f'Excel文件格式错误: {str(excel_err)}',
+                                'full_path': filepath
+                            })
+                            continue
+                    
+                    if ext == '.isf':
+                        try:
+                            with open(filepath, 'r', encoding='utf-8') as f:
+                                first_line = f.readline()
+                                if 'Wave[nm]' not in first_line and 'Refl/Tran' not in first_line:
+                                    self.all_issues.append({
+                                        'file': os.path.basename(filepath),
+                                        'type': 'invalid_format',
+                                        'severity': 'high',
+                                        'description': 'ISF文件格式错误，缺少必要的表头 Wave[nm] 或 Refl/Tran',
+                                        'full_path': filepath
+                                    })
+                                    continue
+                        except UnicodeDecodeError:
+                            try:
+                                with open(filepath, 'r', encoding='gbk') as f:
+                                    first_line = f.readline()
+                                    if 'Wave[nm]' not in first_line and 'Refl/Tran' not in first_line:
+                                        self.all_issues.append({
+                                            'file': os.path.basename(filepath),
+                                            'type': 'invalid_format',
+                                            'severity': 'high',
+                                            'description': 'ISF文件编码错误或格式错误',
+                                            'full_path': filepath
+                                        })
+                                        continue
+                            except:
+                                self.all_issues.append({
+                                    'file': os.path.basename(filepath),
+                                    'type': 'invalid_format',
+                                    'severity': 'high',
+                                    'description': 'ISF文件读取失败，可能是编码问题',
+                                    'full_path': filepath
+                                })
+                                continue
+                        except Exception as isf_err:
+                            self.all_issues.append({
+                                'file': os.path.basename(filepath),
+                                'type': 'invalid_format',
+                                'severity': 'high',
+                                'description': f'ISF文件格式错误: {str(isf_err)}',
+                                'full_path': filepath
+                            })
+                            continue
+                    
                     if ext in ('.xlsx', '.xls'):
                         data = parse_xlsx_file(filepath)
                     else:
@@ -388,7 +484,7 @@ class DataCleaningPanel(QWidget):
             
             self.result_summary.append(f"Found {len(duplicate_issues)} duplicate files\n")
         
-        self.all_issues = invalid_issues + anomaly_issues
+        self.all_issues = self.all_issues + invalid_issues + anomaly_issues
         self._display_results()
     
     def _display_results(self):
@@ -505,10 +601,18 @@ class DataCleaningPanel(QWidget):
                 wavelengths = data.get('wavelengths', [])
                 intensities = data.get('intensities', [])
                 
-                self.preview_ax.clear()
-                self.preview_ax.plot(wavelengths, intensities, 'b-', linewidth=1)
-                self.preview_ax.set_xlabel('Wavelength (nm)')
-                self.preview_ax.set_ylabel('Intensity')
-                self.preview_ax.set_title(f"{filename}")
-                self.preview_ax.grid(True, alpha=0.3)
+                if len(wavelengths) > 0 and len(intensities) > 0:
+                    self.preview_ax.clear()
+                    self.preview_ax.plot(wavelengths, intensities, 'b-', linewidth=1)
+                    self.preview_ax.set_xlabel('Wavelength (nm)')
+                    self.preview_ax.set_ylabel('Intensity')
+                    self.preview_ax.set_title(f"{filename}")
+                    self.preview_ax.grid(True, alpha=0.3)
+                else:
+                    self.preview_ax.clear()
+                    self.preview_ax.text(0.5, 0.5, issue.get('description', 'No data available'), 
+                                        ha='center', va='center', fontsize=12,
+                                        transform=self.preview_ax.transAxes)
+                    self.preview_ax.set_title(f"{filename} - No Data")
+                    self.preview_ax.axis('off')
                 self.preview_canvas.figure.canvas.draw()
