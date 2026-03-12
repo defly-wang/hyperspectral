@@ -10,13 +10,14 @@ from .spectrum_plot import SpectrumPlotWidget
 from .image_view import ImageViewWidget
 from .preprocessing_panel import PreprocessingPanel
 from .training_panel import TrainingPanel
+from .recognition_panel import RecognitionPanel
 
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         
-        self.setWindowTitle("Hyperspectral Data Processing System")
+        self.setWindowTitle("高光谱数据管理系统 - HyperspectralDMS")
         self.setMinimumSize(1200, 800)
         
         self.current_data = None
@@ -59,7 +60,17 @@ class MainWindow(QMainWindow):
         train_action.setShortcut("Ctrl+T")
         train_action.triggered.connect(self._show_training_panel)
         
+        load_model_action = QAction("Load Model...", self)
+        load_model_action.setShortcut("Ctrl+M")
+        load_model_action.triggered.connect(self._load_model)
+        
+        recognize_action = QAction("Recognition...", self)
+        recognize_action.setShortcut("Ctrl+R")
+        recognize_action.triggered.connect(self._show_recognition_panel)
+        
         model_menu.addAction(train_action)
+        model_menu.addAction(load_model_action)
+        model_menu.addAction(recognize_action)
         
         help_menu = menubar.addMenu("Help")
         
@@ -106,9 +117,11 @@ class MainWindow(QMainWindow):
         preview_layout.addWidget(splitter)
         
         self.training_panel = TrainingPanel()
+        self.recognition_panel = RecognitionPanel()
         
         self.tab_widget.addTab(preview_widget, "Preview")
         self.tab_widget.addTab(self.training_panel, "Model Training")
+        self.tab_widget.addTab(self.recognition_panel, "Recognition")
         
         main_layout.addWidget(self.tab_widget)
 
@@ -225,11 +238,27 @@ class MainWindow(QMainWindow):
     def _show_training_panel(self):
         self.tab_widget.setCurrentIndex(1)
 
+    def _show_recognition_panel(self):
+        self.tab_widget.setCurrentIndex(2)
+    
+    def _load_model(self):
+        from PyQt6.QtWidgets import QFileDialog
+        import os
+        
+        filepath, _ = QFileDialog.getOpenFileName(
+            self, "Select Model File", "", 
+            "Pickle Files (*.pkl)"
+        )
+        
+        if filepath and os.path.exists(filepath):
+            self.recognition_panel.load_model_from_path(filepath)
+            self._show_recognition_panel()
+
     def _show_about(self):
         QMessageBox.about(
             self, 
             "About",
-            "Hyperspectral Data Processing System\n\n"
-            "A tool for viewing and processing hyperspectral data.\n\n"
-            "Supported format: iSpecField (.isf)"
+            "高光谱数据管理系统 - HyperspectralDMS\n\n"
+            "高光谱数据处理与可视化工具。\n\n"
+            "支持格式: iSpecField (.isf)"
         )

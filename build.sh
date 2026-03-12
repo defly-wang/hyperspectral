@@ -3,7 +3,7 @@
 set -e
 
 echo "========================================="
-echo "  Hyperspectral Viewer 打包脚本"
+echo "  高光谱数据管理系统 HyperspectralDMS 打包脚本"
 echo "========================================="
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -35,10 +35,10 @@ echo "========================================="
 echo "  打包完成!"
 echo "========================================="
 echo ""
-echo "输出目录: dist/HyperspectralViewer/"
-echo "可执行文件: dist/HyperspectralViewer/HyperspectralViewer"
+echo "输出目录: dist/HyperspectralDMS/"
+echo "可执行文件: dist/HyperspectralDMS/HyperspectralDMS"
 echo ""
 echo "运行方式:"
-echo "  cd dist/HyperspectralViewer"
-echo "  ./HyperspectralViewer"
+echo "  cd dist/HyperspectralDMS"
+echo "  ./HyperspectralDMS"
 echo ""

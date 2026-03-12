@@ -1,4 +1,4 @@
-# 高光谱数据处理系统
+# 高光谱数据管理系统 - HyperspectralDMS
 
 基于 PyQt6 开发的高光谱数据处理与可视化桌面应用程序。
 
@@ -64,7 +64,7 @@ python main.py
 ./build.sh
 ```
 
-打包后的可执行文件位于 `dist/HyperspectralViewer/` 目录。
+打包后的可执行文件位于 `dist/HyperspectralDMS/` 目录。
 
 ## 数据格式
 

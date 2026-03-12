@@ -5,6 +5,7 @@
 /venv
 /data
 /xlsxdata
+/model
 
 # Python
 *.py[cod]
