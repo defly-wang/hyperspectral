@@ -12,13 +12,14 @@ from .preprocessing_panel import PreprocessingPanel
 from .training_panel import TrainingPanel
 from .recognition_panel import RecognitionPanel
 from .data_cleaning_panel import DataCleaningPanel
+from ..core.i18n import t, set_language, LanguageManager
 
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         
-        self.setWindowTitle("高光谱数据管理系统 - HyperspectralDMS")
+        self.setWindowTitle(t("window_title"))
         self.setMinimumSize(1200, 800)
         
         self.current_data = None
@@ -29,18 +30,18 @@ class MainWindow(QMainWindow):
         self._create_ui()
         self._connect_signals()
         
-        self.statusBar().showMessage("Ready")
+        self.statusBar().showMessage(t("ready"))
 
     def _create_menu_bar(self):
         menubar = self.menuBar()
         
-        file_menu = menubar.addMenu("File")
+        file_menu = menubar.addMenu(t("file"))
         
-        open_action = QAction("Open Folder...", self)
+        open_action = QAction(t("open_folder"), self)
         open_action.setShortcut("Ctrl+O")
         open_action.triggered.connect(self._open_folder)
         
-        exit_action = QAction("Exit", self)
+        exit_action = QAction(t("exit"), self)
         exit_action.setShortcut("Ctrl+Q")
         exit_action.triggered.connect(self.close)
         
@@ -48,24 +49,34 @@ class MainWindow(QMainWindow):
         file_menu.addSeparator()
         file_menu.addAction(exit_action)
         
-        view_menu = menubar.addMenu("View")
+        view_menu = menubar.addMenu(t("view"))
         
-        reset_action = QAction("Reset View", self)
+        reset_action = QAction(t("reset_view"), self)
         reset_action.triggered.connect(self._reset_view)
         
         view_menu.addAction(reset_action)
         
-        model_menu = menubar.addMenu("Model")
+        lang_menu = menubar.addMenu(t("language"))
         
-        train_action = QAction("Train Model...", self)
+        zh_action = QAction("中文", self)
+        zh_action.triggered.connect(lambda: self._change_language("zh_CN"))
+        lang_menu.addAction(zh_action)
+        
+        en_action = QAction("English", self)
+        en_action.triggered.connect(lambda: self._change_language("en_US"))
+        lang_menu.addAction(en_action)
+        
+        model_menu = menubar.addMenu(t("model"))
+        
+        train_action = QAction(t("train_model"), self)
         train_action.setShortcut("Ctrl+T")
         train_action.triggered.connect(self._show_training_panel)
         
-        load_model_action = QAction("Load Model...", self)
+        load_model_action = QAction(t("load_model"), self)
         load_model_action.setShortcut("Ctrl+M")
         load_model_action.triggered.connect(self._load_model)
         
-        recognize_action = QAction("Recognition...", self)
+        recognize_action = QAction(t("recognition"), self)
         recognize_action.setShortcut("Ctrl+R")
         recognize_action.triggered.connect(self._show_recognition_panel)
         
@@ -73,9 +84,9 @@ class MainWindow(QMainWindow):
         model_menu.addAction(load_model_action)
         model_menu.addAction(recognize_action)
         
-        help_menu = menubar.addMenu("Help")
+        help_menu = menubar.addMenu(t("help"))
         
-        about_action = QAction("About", self)
+        about_action = QAction(t("about"), self)
         about_action.triggered.connect(self._show_about)
         
         help_menu.addAction(about_action)
@@ -121,12 +132,21 @@ class MainWindow(QMainWindow):
         self.recognition_panel = RecognitionPanel()
         self.data_cleaning_panel = DataCleaningPanel()
         
-        self.tab_widget.addTab(preview_widget, "Preview")
-        self.tab_widget.addTab(self.data_cleaning_panel, "Data Cleaning")
-        self.tab_widget.addTab(self.training_panel, "Model Training")
-        self.tab_widget.addTab(self.recognition_panel, "Recognition")
+        self.tab_widget.addTab(preview_widget, t("preview"))
+        self.tab_widget.addTab(self.data_cleaning_panel, t("data_cleaning"))
+        self.tab_widget.addTab(self.training_panel, t("model_training"))
+        self.tab_widget.addTab(self.recognition_panel, t("recognition_tab"))
         
         main_layout.addWidget(self.tab_widget)
+
+    def _change_language(self, lang: str):
+        set_language(lang)
+        self._refresh_ui()
+    
+    def _refresh_ui(self):
+        self.setWindowTitle(t("window_title"))
+        self._create_menu_bar()
+        self.statusBar().showMessage(t("ready"))
 
     def _connect_signals(self):
         self.file_browser.folder_selected.connect(self._on_folder_selected)
@@ -260,8 +280,8 @@ class MainWindow(QMainWindow):
     def _show_about(self):
         QMessageBox.about(
             self, 
-            "About",
-            "高光谱数据管理系统 - HyperspectralDMS\n\n"
-            "高光谱数据处理与可视化工具。\n\n"
-            "支持格式: iSpecField (.isf)"
+            t("about_title"),
+            f"{t('window_title')}\n\n"
+            f"{t('about_description')}\n\n"
+            f"{t('supported_format')}"
         )

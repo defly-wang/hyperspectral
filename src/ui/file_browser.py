@@ -2,6 +2,7 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
                              QListWidget, QListWidgetItem, QLabel, QFileDialog)
 from PyQt6.QtCore import Qt, pyqtSignal
 import os
+from ..core.i18n import t
 
 
 class FileBrowserWidget(QWidget):
@@ -14,9 +15,9 @@ class FileBrowserWidget(QWidget):
         layout = QVBoxLayout(self)
         
         header_layout = QHBoxLayout()
-        self.folder_label = QLabel("No folder selected")
+        self.folder_label = QLabel(t("no_folder_selected"))
         self.folder_label.setStyleSheet("font-weight: bold;")
-        self.open_btn = QPushButton("Open Folder")
+        self.open_btn = QPushButton(t("open_folder_btn"))
         
         header_layout.addWidget(self.folder_label)
         header_layout.addWidget(self.open_btn)
@@ -24,7 +25,7 @@ class FileBrowserWidget(QWidget):
         self.file_list = QListWidget()
         self.file_list.setSelectionMode(QListWidget.SelectionMode.ExtendedSelection)
         
-        self.count_label = QLabel("0 files")
+        self.count_label = QLabel(f"0 {t('files')}")
         
         layout.addLayout(header_layout)
         layout.addWidget(self.file_list)
@@ -55,7 +56,7 @@ class FileBrowserWidget(QWidget):
             self.file_list.addItem(item)
             self.file_paths[filepath] = filepath
         
-        self.count_label.setText(f"{len(files)} files")
+        self.count_label.setText(f"{len(files)} {t('files')}")
 
     def _on_item_clicked(self, item):
         selected_files = self._get_selected_files()
