@@ -102,7 +102,7 @@ class DataCleaningPanel(QWidget):
         self.progress_bar = QProgressBar()
         self.progress_bar.setVisible(False)
         
-        results_group = QGroupBox(t("analysis_results"))
+        self.results_group = QGroupBox(t("analysis_results"))
         results_layout = QVBoxLayout()
         
         self.issues_table = QTableWidget()
@@ -111,7 +111,7 @@ class DataCleaningPanel(QWidget):
         self.issues_table.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
         self.issues_table.itemClicked.connect(self._on_issue_clicked)
         
-        preview_group = QGroupBox(t("spectrum_preview"))
+        self.preview_group = QGroupBox(t("spectrum_preview"))
         preview_layout = QVBoxLayout()
         
         try:
@@ -124,14 +124,14 @@ class DataCleaningPanel(QWidget):
             self.preview_canvas = None
             preview_layout.addWidget(QLabel("Matplotlib not available"))
         
-        preview_group.setLayout(preview_layout)
+        self.preview_group.setLayout(preview_layout)
         
         self.result_summary = QTextEdit()
         self.result_summary.setReadOnly(True)
         
         bottom_splitter = QSplitter(Qt.Orientation.Horizontal)
         bottom_splitter.addWidget(self.result_summary)
-        bottom_splitter.addWidget(preview_group)
+        bottom_splitter.addWidget(self.preview_group)
         
         main_splitter = QSplitter(Qt.Orientation.Vertical)
         main_splitter.addWidget(self.issues_table)
@@ -141,9 +141,9 @@ class DataCleaningPanel(QWidget):
         
         results_layout.addWidget(main_splitter, 1)
         
-        results_group.setLayout(results_layout)
+        self.results_group.setLayout(results_layout)
         
-        action_group = QGroupBox(t("actions"))
+        self.action_group = QGroupBox(t("actions"))
         action_layout = QHBoxLayout()
         
         self.export_btn = QPushButton(t("export_report"))
@@ -156,14 +156,14 @@ class DataCleaningPanel(QWidget):
         action_layout.addWidget(self.clear_btn)
         
         action_layout.addStretch()
-        action_group.setLayout(action_layout)
+        self.action_group.setLayout(action_layout)
         
-        main_layout.addWidget(data_group)
-        main_layout.addWidget(options_group)
+        main_layout.addWidget(self.data_group)
+        main_layout.addWidget(self.options_group)
         main_layout.addWidget(self.analyze_btn)
         main_layout.addWidget(self.progress_bar)
-        main_layout.addWidget(results_group)
-        main_layout.addWidget(action_group)
+        main_layout.addWidget(self.results_group)
+        main_layout.addWidget(self.action_group)
     
     def _select_data_folder(self):
         directory = QFileDialog.getExistingDirectory(

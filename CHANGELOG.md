@@ -3,6 +3,11 @@
 ## [Unreleased]
 
 ### 新增功能
+- **多语言支持**
+  - 支持简体中文和英文两种语言
+  - 菜单 Language 可随时切换语言
+  - 切换语言时实时更新所有模块界面
+
 - **数据清洗模块**
   - 无效数据检测：空值、NaN、无穷值、负值、超出范围值、数据长度不匹配、方差过少
   - 异常数据检测：IQR和Z-Score两种方法
@@ -27,6 +32,7 @@
 ### UI改进
 - 标签页：Preview / Data Cleaning / Model Training / Recognition
 - 新增Model菜单：加载模型、识别
+- 新增Language菜单：中文/English
 
 ## [1.0.0] - 2026-03-11
 

@@ -56,21 +56,21 @@ class PreprocessingPanel(QWidget):
         
         self.baseline_group.setLayout(baseline_layout)
         
-        options_group = QGroupBox("Display Options")
+        self.options_group = QGroupBox("Display Options")
         options_layout = QVBoxLayout()
         
         self.show_original_check = QCheckBox("Show Original Spectrum")
         self.show_original_check.setChecked(False)
         options_layout.addWidget(self.show_original_check)
         
-        options_group.setLayout(options_layout)
+        self.options_group.setLayout(options_layout)
         
         self.apply_btn = QPushButton("Apply Preprocessing")
         
-        main_layout.addWidget(smoothing_group)
-        main_layout.addWidget(normalization_group)
-        main_layout.addWidget(baseline_group)
-        main_layout.addWidget(options_group)
+        main_layout.addWidget(self.smoothing_group)
+        main_layout.addWidget(self.normalization_group)
+        main_layout.addWidget(self.baseline_group)
+        main_layout.addWidget(self.options_group)
         main_layout.addWidget(self.apply_btn)
         main_layout.addStretch()
         
