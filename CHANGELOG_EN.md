@@ -17,6 +17,14 @@
   - Report export
   - Issue list click to preview spectrum
 
+- **Data Split Module**
+  - Two split modes: Train/Val/Test or Train/Test
+  - Configurable ratios (percentage format, default 70%/15%/15%)
+  - Progress bar display
+  - Auto-clear old files before split (with confirmation)
+  - Data shuffle with configurable random seed
+  - Background thread execution to avoid UI freeze
+
 - **Recognition Module**
   - Load trained models for prediction
   - Batch recognition of multiple files
@@ -30,7 +38,7 @@
 - File list sorted by filename
 
 ### UI Improvements
-- Tabs: Preview / Data Cleaning / Model Training / Recognition
+- Tabs: Preview / Data Cleaning / Data Split / Model Training / Recognition
 - New Model menu: Load model, Recognition
 - New Language menu: 中文/English
 

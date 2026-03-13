@@ -155,6 +155,12 @@ translations: Dict[str, Dict[str, str]] = {
         "split_complete": "分割完成!",
         "select_source_folder": "选择源文件夹",
         "select_output_folder": "选择输出文件夹",
+        "clear_output_confirm": "输出目录已有文件，是否清除后继续？",
+        "clear_and_continue": "清除并继续",
+        "cancel": "取消",
+        "clearing": "正在清除...",
+        "splitting": "正在分割...",
+        "confirm": "确认",
     },
     "en_US": {
         # Main Window
@@ -309,6 +315,12 @@ translations: Dict[str, Dict[str, str]] = {
         "split_complete": "Split Complete!",
         "select_source_folder": "Select Source Folder",
         "select_output_folder": "Select Output Folder",
+        "clear_output_confirm": "Output folder already has files. Clear and continue?",
+        "clear_and_continue": "Clear and Continue",
+        "cancel": "Cancel",
+        "clearing": "Clearing...",
+        "splitting": "Splitting...",
+        "confirm": "Confirm",
     }
 }
 

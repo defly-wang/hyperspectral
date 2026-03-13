@@ -23,6 +23,13 @@
 - **报告导出**: 支持导出清洗报告
 - **数据预览**: 点击问题列表查看对应光谱曲线
 
+### 数据集分割
+- **训练/验证/测试集分割**: 支持三种方式分割（训练集/验证集/测试集 或 训练集/测试集）
+- **比例配置**: 可自定义训练集、验证集、测试集比例
+- **进度显示**: 分割过程中显示进度条
+- **自动清除**: 分割前自动清除旧文件
+- **随机打乱**: 支持随机打乱数据，配置随机种子
+
 ### 数据预处理
 - 平滑滤波 (Savitzky-Golay / 移动平均)
 - 归一化 (Min-Max / Z-Score)
@@ -122,6 +129,16 @@ training_data/
 5. 查看问题列表，点击查看对应光谱曲线
 6. 可导出清洗报告
 
+### 数据集分割
+1. 切换到 "Data Split" 标签页
+2. 点击 "Select Folder" 选择源数据文件夹（需包含分类子目录）
+3. 点击 "Select Folder" 选择输出目录
+4. 配置分割类型（训练/验证/测试集 或 训练/测试集）
+5. 配置各数据集比例
+6. 可选择是否打乱数据，设置随机种子
+7. 点击 "开始分割" 开始分割
+8. 分割完成后查看结果统计
+
 ### 模型训练
 1. 切换到 "Model Training" 标签页
 2. 点击 "Select..." 选择训练数据目录（需包含分类子目录）
@@ -150,17 +167,19 @@ hyperspectral/
     │   ├── isf_reader.py       # ISF 文件解析
     │   ├── xlsx_reader.py      # XLSX 文件解析
     │   ├── preprocessing.py    # 数据预处理
-    │   ├── model_trainer.py    # 机器学习模型
-    │   └── data_cleaner.py    # 数据清洗
-    └── ui/
-        ├── main_window.py       # 主窗口
-        ├── file_browser.py      # 文件浏览器
-        ├── spectrum_plot.py     # 光谱曲线图
-        ├── image_view.py        # 伪彩色图像
-        ├── preprocessing_panel.py  # 预处理面板
-        ├── training_panel.py    # 模型训练面板
-        ├── recognition_panel.py # 识别面板
-        └── data_cleaning_panel.py # 数据清洗面板
+│   ├── model_trainer.py      # 机器学习模型
+│   ├── data_cleaner.py       # 数据清洗
+│   └── i18n.py                # 国际化
+│   └── ui/
+│       ├── main_window.py       # 主窗口
+│       ├── file_browser.py      # 文件浏览器
+│       ├── spectrum_plot.py     # 光谱曲线图
+│       ├── image_view.py        # 伪彩色图像
+│       ├── preprocessing_panel.py  # 预处理面板
+│       ├── training_panel.py    # 模型训练面板
+│       ├── recognition_panel.py # 识别面板
+│       ├── data_cleaning_panel.py # 数据清洗面板
+│       └── data_split_panel.py  # 数据集分割面板
 ```
 
 ## 快捷键

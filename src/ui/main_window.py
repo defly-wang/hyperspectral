@@ -135,8 +135,8 @@ class MainWindow(QMainWindow):
         self.data_split_panel = DataSplitPanel()
         
         self.tab_widget.addTab(preview_widget, t("preview"))
-        self.tab_widget.addTab(self.data_split_panel, t("data_split"))
         self.tab_widget.addTab(self.data_cleaning_panel, t("data_cleaning"))
+        self.tab_widget.addTab(self.data_split_panel, t("data_split"))
         self.tab_widget.addTab(self.training_panel, t("model_training"))
         self.tab_widget.addTab(self.recognition_panel, t("recognition_tab"))
         

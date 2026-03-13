@@ -17,6 +17,14 @@
   - 报告导出功能
   - 问题列表点击预览光谱曲线
 
+- **数据集分割模块**
+  - 支持两种分割模式：训练/验证/测试集 或 训练/测试集
+  - 可配置训练集、验证集、测试集比例（百分比形式，默认70%/15%/15%）
+  - 分割进度条显示
+  - 分割前自动清除旧文件（带确认提示）
+  - 支持数据打乱和随机种子设置
+  - 后台线程执行，避免UI卡顿
+
 - **识别模块**
   - 加载训练好的模型进行预测
   - 批量识别多个文件
@@ -30,7 +38,7 @@
 - 文件列表按文件名排序
 
 ### UI改进
-- 标签页：Preview / Data Cleaning / Model Training / Recognition
+- 标签页：Preview / Data Cleaning / Data Split / Model Training / Recognition
 - 新增Model菜单：加载模型、识别
 - 新增Language菜单：中文/English
 

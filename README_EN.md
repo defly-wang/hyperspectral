@@ -23,6 +23,13 @@ A PyQt6-based desktop application for hyperspectral data processing and visualiz
 - **Report Export**: Export cleaning reports
 - **Data Preview**: Click issue list to view spectrum curves
 
+### Data Split
+- **Train/Val/Test Split**: Support two split modes (Train/Val/Test or Train/Test)
+- **Ratio Configuration**: Customizable train, validation, test ratios
+- **Progress Display**: Progress bar during split
+- **Auto-clear**: Automatically clear old files before split
+- **Shuffle**: Support data shuffle with configurable random seed
+
 ### Data Preprocessing
 - Smoothing (Savitzky-Golay / Moving Average)
 - Normalization (Min-Max / Z-Score)
@@ -122,6 +129,16 @@ training_data/
 5. Review issue list, click to preview spectrum
 6. Export cleaning report
 
+### Data Split
+1. Switch to "Data Split" tab
+2. Click "Select Folder" to select source data folder (with category subdirectories)
+3. Click "Select Folder" to select output directory
+4. Configure split type (Train/Val/Test or Train/Test)
+5. Configure ratios for each dataset
+6. Optionally enable shuffle and set random seed
+7. Click "Start Split" to begin
+8. View results after completion
+
 ### Model Training
 1. Switch to "Model Training" tab
 2. Click "Select..." to choose training data directory
@@ -150,18 +167,20 @@ hyperspectral/
     │   ├── isf_reader.py       # ISF file parser
     │   ├── xlsx_reader.py       # XLSX file parser
     │   ├── preprocessing.py     # Data preprocessing
-    │   ├── model_trainer.py    # ML models
-    │   ├── data_cleaner.py     # Data cleaning
-    │   └── i18n.py            # Internationalization
-    └── ui/
-        ├── main_window.py       # Main window
-        ├── file_browser.py      # File browser
-        ├── spectrum_plot.py     # Spectrum chart
-        ├── image_view.py        # Pseudo-color image
-        ├── preprocessing_panel.py  # Preprocessing panel
-        ├── training_panel.py    # Training panel
-        ├── recognition_panel.py # Recognition panel
-        └── data_cleaning_panel.py # Data cleaning panel
+│   ├── model_trainer.py    # ML models
+│   ├── data_cleaner.py     # Data cleaning
+│   ├── data_split.py       # Data split
+│   └── i18n.py            # Internationalization
+│   └── ui/
+│       ├── main_window.py       # Main window
+│       ├── file_browser.py      # File browser
+│       ├── spectrum_plot.py     # Spectrum chart
+│       ├── image_view.py        # Pseudo-color image
+│       ├── preprocessing_panel.py  # Preprocessing panel
+│       ├── training_panel.py    # Training panel
+│       ├── recognition_panel.py # Recognition panel
+│       ├── data_cleaning_panel.py # Data cleaning panel
+│       └── data_split_panel.py  # Data split panel
 ```
 
 ## Keyboard Shortcuts
