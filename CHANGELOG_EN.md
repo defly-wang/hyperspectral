@@ -25,6 +25,11 @@
   - Data shuffle with configurable random seed
   - Background thread execution to avoid UI freeze
 
+- **Model Training Module Improvements**
+  - Support loading pre-split data directories (train/val/test structure)
+  - Automatic validation after training using validation set
+  - Display validation accuracy and classification report
+
 - **Recognition Module**
   - Load trained models for prediction
   - Batch recognition of multiple files

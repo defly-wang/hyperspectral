@@ -104,26 +104,73 @@ class TrainingPanel(QWidget):
             self._scan_directory(directory)
     
     def _scan_directory(self, directory):
-        categories = [d for d in os.listdir(directory) 
-                     if os.path.isdir(os.path.join(directory, d))]
+        from ..core.model_trainer import SpectrumClassifier
         
-        if not categories:
-            self.data_info_label.setText(t("no_category_found"))
-            self.train_btn.setEnabled(False)
-            return
+        classifier = SpectrumClassifier()
+        is_split = classifier.detect_split_dirs(directory)
         
-        total_files = 0
-        for category in categories:
-            category_dir = os.path.join(directory, category)
-            files = [f for f in os.listdir(category_dir) 
-                    if f.lower().endswith(('.xlsx', '.xls'))]
-            total_files += len(files)
+        if is_split:
+            train_dir = os.path.join(directory, 'train')
+            categories = sorted([d for d in os.listdir(train_dir) 
+                               if os.path.isdir(os.path.join(train_dir, d))])
+            
+            train_count = 0
+            val_count = 0
+            test_count = 0
+            
+            for category in categories:
+                train_cat_dir = os.path.join(train_dir, category)
+                if os.path.exists(train_cat_dir):
+                    train_count += len([f for f in os.listdir(train_cat_dir) 
+                                      if f.lower().endswith(('.xlsx', '.xls'))])
+                
+                val_cat_dir = os.path.join(directory, 'val', category)
+                if os.path.exists(val_cat_dir):
+                    val_count += len([f for f in os.listdir(val_cat_dir) 
+                                    if f.lower().endswith(('.xlsx', '.xls'))])
+                
+                test_cat_dir = os.path.join(directory, 'test', category)
+                if os.path.exists(test_cat_dir):
+                    test_count += len([f for f in os.listdir(test_cat_dir) 
+                                     if f.lower().endswith(('.xlsx', '.xls'))])
+            
+            total_files = train_count + val_count + test_count
+            
+            val_info = f", Val: {val_count}" if val_count > 0 else ""
+            test_info = f", Test: {test_count}" if test_count > 0 else ""
+            
+            self.data_info_label.setText(
+                f"Found {len(categories)} categories: {', '.join(categories)}\n"
+                f"Total files: {total_files} (Train: {train_count}{val_info}{test_info})\n"
+                f"Feature dimension: 400-2500nm (2101 points)\n"
+                f"Data source: Pre-split directories"
+            )
+            self.is_split_data = True
+            self.split_data = None
+        else:
+            categories = [d for d in os.listdir(directory) 
+                         if os.path.isdir(os.path.join(directory, d))]
+            
+            if not categories:
+                self.data_info_label.setText(t("no_category_found"))
+                self.train_btn.setEnabled(False)
+                return
+            
+            total_files = 0
+            for category in categories:
+                category_dir = os.path.join(directory, category)
+                files = [f for f in os.listdir(category_dir) 
+                        if f.lower().endswith(('.xlsx', '.xls'))]
+                total_files += len(files)
+            
+            self.data_info_label.setText(
+                f"Found {len(categories)} categories: {', '.join(categories)}\n"
+                f"Total files: {total_files}\n"
+                f"Feature dimension: 400-2500nm (2101 points)"
+            )
+            self.is_split_data = False
+            self.split_data = None
         
-        self.data_info_label.setText(
-            f"Found {len(categories)} categories: {', '.join(categories)}\n"
-            f"Total files: {total_files}\n"
-            f"Feature dimension: 400-2500nm (2101 points)"
-        )
         self.categories = categories
         self.train_btn.setEnabled(True)
     
@@ -152,34 +199,59 @@ class TrainingPanel(QWidget):
             self.result_text.append("Loading data...")
             self.progress_bar.setValue(20)
             
-            X, y = self.classifier.load_data_from_directory(
-                self.data_dir, 
-                min_wavelength=400
-            )
+            if hasattr(self, 'is_split_data') and self.is_split_data:
+                X_train, y_train, X_val, y_val, X_test, y_test = self.classifier.load_data_from_directory(
+                    self.data_dir, 
+                    min_wavelength=400,
+                    use_split_dirs=True
+                )
+                self.result_text.append(f"Loaded {len(y_train)} training samples")
+                self.result_text.append(f"Using pre-split data (Train: {len(y_train)}, Val: {len(y_val) if y_val is not None else 0}, Test: {len(y_test) if y_test is not None else 0})")
+            else:
+                X, y, X_val, y_val, X_test, y_test = self.classifier.load_data_from_directory(
+                    self.data_dir, 
+                    min_wavelength=400,
+                    use_split_dirs=False
+                )
+                y_train = y
+                self.result_text.append(f"Loaded {len(X)} samples with {X.shape[1]} features")
             
-            self.result_text.append(f"Loaded {len(X)} samples with {X.shape[1]} features")
             self.result_text.append(f"Classes: {', '.join(self.classifier.get_class_names())}")
             self.progress_bar.setValue(50)
             
             self.result_text.append(f"\nTraining {model_type} model...")
             self.progress_bar.setValue(60)
             
-            result = self.classifier.train(
-                X, y, 
-                model_type=model_type,
-                test_size=self.test_size_spin.value(),
-                random_state=42
-            )
+            if hasattr(self, 'is_split_data') and self.is_split_data:
+                result = self.classifier.train(
+                    X_train, y_train, 
+                    model_type=model_type,
+                    random_state=42,
+                    X_val=X_val if X_val is not None else None, 
+                    y_val=y_val if y_val is not None else None,
+                    X_test=X_test if X_test is not None else None, 
+                    y_test=y_test if y_test is not None else None
+                )
+            else:
+                result = self.classifier.train(
+                    X, y, 
+                    model_type=model_type,
+                    test_size=self.test_size_spin.value(),
+                    random_state=42
+                )
             
             self.progress_bar.setValue(90)
             
             self.result_text.append("\n=== Training Results ===")
-            self.result_text.append(f"Accuracy: {result['accuracy']:.4f}")
+            self.result_text.append(f"Test Accuracy: {result['accuracy']:.4f}")
             self.result_text.append(f"Training samples: {result['train_size']}")
             self.result_text.append(f"Test samples: {result['test_size']}")
+            if result.get('val_size', 0) > 0:
+                self.result_text.append(f"Validation samples: {result['val_size']}")
+                self.result_text.append(f"Validation Accuracy: {result['val_accuracy']:.4f}")
             self.result_text.append(f"Number of classes: {result['n_classes']}")
             
-            self.result_text.append("\n=== Classification Report ===")
+            self.result_text.append("\n=== Test Set Classification Report ===")
             report = result['report']
             for cls in result['classes']:
                 if cls in report:
@@ -188,6 +260,17 @@ class TrainingPanel(QWidget):
                         f"Recall={report[cls]['recall']:.4f}, "
                         f"F1={report[cls]['f1-score']:.4f}"
                     )
+            
+            if result.get('has_validation') and 'val_report' in result:
+                self.result_text.append("\n=== Validation Set Classification Report ===")
+                val_report = result['val_report']
+                for cls in result['classes']:
+                    if cls in val_report:
+                        self.result_text.append(
+                            f"{cls}: Precision={val_report[cls]['precision']:.4f}, "
+                            f"Recall={val_report[cls]['recall']:.4f}, "
+                            f"F1={val_report[cls]['f1-score']:.4f}"
+                        )
             
             self.progress_bar.setValue(100)
             self.train_btn.setEnabled(True)
