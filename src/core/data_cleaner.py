@@ -213,3 +213,176 @@ class DataCleaner:
             "max_wavelength": np.max(wavelengths),
             "wavelength_range": np.max(wavelengths) - np.min(wavelengths)
         }
+
+    def detect_outlier_spectra(self, spectra: List[Tuple[np.ndarray, np.ndarray]],
+                              file_paths: List[str],
+                              similarity_threshold: float = 0.85) -> List[DataIssue]:
+        issues = []
+        
+        if len(spectra) < 3:
+            return issues
+        
+        normalized_spectra = []
+        valid_indices = []
+        
+        for i, (wl, intensity) in enumerate(spectra):
+            if len(wl) < 10 or len(wl) != len(intensity):
+                continue
+            
+            norm = (intensity - np.min(intensity)) / (np.max(intensity) - np.min(intensity) + 1e-10)
+            normalized_spectra.append(norm)
+            valid_indices.append(i)
+        
+        if len(normalized_spectra) < 3:
+            return issues
+        
+        reference = np.mean(normalized_spectra, axis=0)
+        
+        correlations = []
+        for i, norm in enumerate(normalized_spectra):
+            if len(norm) != len(reference):
+                continue
+            corr = np.corrcoef(norm, reference)[0, 1]
+            if np.isnan(corr):
+                corr = 0
+            correlations.append((valid_indices[i], corr))
+        
+        correlations.sort(key=lambda x: x[1])
+        
+        for idx, corr in correlations:
+            if corr < similarity_threshold:
+                issues.append(DataIssue(
+                    issue_type="outlier_spectrum",
+                    file_path=file_paths[idx],
+                    description=f"光谱趋势异常，与整体平均谱相关系数仅 {corr:.4f}",
+                    severity="medium"
+                ))
+        
+        return issues
+
+    def calculate_spectrum_similarity(self, intensities: np.ndarray, 
+                                     reference: np.ndarray) -> Dict:
+        if len(intensities) != len(reference):
+            return {"correlation": 0, "euclidean_dist": float('inf'), "cosine_sim": 0}
+        
+        correlation = np.corrcoef(intensities, reference)[0, 1]
+        if np.isnan(correlation):
+            correlation = 0
+        
+        euclidean_dist = np.sqrt(np.sum((intensities - reference) ** 2))
+        
+        cosine_sim = np.dot(intensities, reference) / (
+            np.linalg.norm(intensities) * np.linalg.norm(reference) + 1e-10
+        )
+        
+        return {
+            "correlation": correlation,
+            "euclidean_dist": euclidean_dist,
+            "cosine_sim": cosine_sim
+        }
+
+    def detect_trend_anomalies(self, wavelengths: np.ndarray, intensities: np.ndarray,
+                               reference_wl: np.ndarray, reference_int: np.ndarray,
+                               threshold: float = 0.7) -> Tuple[bool, Dict]:
+        if len(wavelengths) < 5 or len(reference_wl) < 5:
+            return False, {}
+        
+        common_wl_min = max(wavelengths[0], reference_wl[0])
+        common_wl_max = min(wavelengths[-1], reference_wl[-1])
+        
+        mask1 = (wavelengths >= common_wl_min) & (wavelengths <= common_wl_max)
+        mask2 = (reference_wl >= common_wl_min) & (reference_wl <= common_wl_max)
+        
+        wl_interp = wavelengths[mask1]
+        int_interp = intensities[mask1]
+        ref_interp = np.interp(wl_interp, reference_wl, reference_int)
+        
+        if len(wl_interp) < 5:
+            return False, {}
+        
+        int_norm = (int_interp - np.min(int_interp)) / (np.max(int_interp) - np.min(int_interp) + 1e-10)
+        ref_norm = (ref_interp - np.min(ref_interp)) / (np.max(ref_interp) - np.min(ref_interp) + 1e-10)
+        
+        correlation = np.corrcoef(int_norm, ref_norm)[0, 1]
+        if np.isnan(correlation):
+            correlation = 0
+        
+        diff = np.abs(int_norm - ref_norm)
+        mean_diff = np.mean(diff)
+        max_diff = np.max(diff)
+        
+        trend_similar = correlation >= threshold
+        
+        return trend_similar, {
+            "correlation": correlation,
+            "mean_difference": mean_diff,
+            "max_difference": max_diff,
+            "is_outlier": not trend_similar
+        }
+
+    def analyze_spectrum_trend(self, intensities: np.ndarray) -> Dict:
+        if len(intensities) < 3:
+            return {}
+        
+        x = np.arange(len(intensities))
+        
+        coeffs = np.polyfit(x, intensities, 1)
+        slope = coeffs[0]
+        
+        trend_direction = "increasing" if slope > 0.001 else "decreasing" if slope < -0.001 else "stable"
+        
+        residuals = intensities - np.polyval(coeffs, x)
+        r_squared = 1 - (np.var(residuals) / np.var(intensities))
+        
+        first_half = intensities[:len(intensities)//2]
+        second_half = intensities[len(intensities)//2:]
+        first_mean = np.mean(first_half)
+        second_mean = np.mean(second_half)
+        trend_change = second_mean - first_mean
+        
+        return {
+            "slope": slope,
+            "trend_direction": trend_direction,
+            "trend_strength": abs(r_squared),
+            "trend_change": trend_change,
+            "volatility": np.std(intensities) / (np.mean(intensities) + 1e-10)
+        }
+
+    def detect_anomalous_trend(self, spectra: List[Tuple[np.ndarray, np.ndarray]],
+                               file_paths: List[str],
+                               trend_threshold: float = 0.5) -> List[DataIssue]:
+        issues = []
+        
+        if len(spectra) < 3:
+            return issues
+        
+        trends = []
+        for wl, intensity in spectra:
+            if len(wl) >= 3:
+                trend = self.analyze_spectrum_trend(intensity)
+                if trend:
+                    trends.append(trend)
+        
+        if len(trends) < 3:
+            return issues
+        
+        avg_slope = np.mean([t["slope"] for t in trends])
+        avg_volatility = np.mean([t["volatility"] for t in trends])
+        
+        for i, (wl, intensity) in enumerate(spectra):
+            trend = self.analyze_spectrum_trend(intensity)
+            if not trend:
+                continue
+            
+            slope_diff = abs(trend["slope"] - avg_slope) / (abs(avg_slope) + 1e-10)
+            volatility_ratio = trend["volatility"] / (avg_volatility + 1e-10)
+            
+            if slope_diff > 2.0 or volatility_ratio > 2.0:
+                issues.append(DataIssue(
+                    issue_type="anomalous_trend",
+                    file_path=file_paths[i],
+                    description=f"趋势异常: 斜率差异 {slope_diff:.2f}倍, 波动性 {volatility_ratio:.2f}倍",
+                    severity="medium"
+                ))
+        
+        return issues
