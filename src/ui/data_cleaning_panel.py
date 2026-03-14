@@ -94,6 +94,21 @@ class DataCleaningPanel(QWidget):
         duplicate_layout.addStretch()
         options_layout.addLayout(duplicate_layout)
         
+        outlier_layout = QHBoxLayout()
+        self.check_outlier_cb = QCheckBox(t("detect_outlier_spectra"))
+        self.check_outlier_cb.setChecked(True)
+        outlier_layout.addWidget(self.check_outlier_cb)
+        
+        outlier_layout.addWidget(QLabel(t("similarity") + ":"))
+        self.outlier_threshold_spin = QDoubleSpinBox()
+        self.outlier_threshold_spin.setRange(0.5, 0.99)
+        self.outlier_threshold_spin.setValue(0.85)
+        self.outlier_threshold_spin.setSingleStep(0.05)
+        self.outlier_threshold_spin.setSuffix(" (correlation)")
+        outlier_layout.addWidget(self.outlier_threshold_spin)
+        outlier_layout.addStretch()
+        options_layout.addLayout(outlier_layout)
+        
         self.options_group.setLayout(options_layout)
         
         self.analyze_btn = QPushButton(t("start_analysis"))
@@ -396,9 +411,12 @@ class DataCleaningPanel(QWidget):
         invalid_issues = []
         anomaly_issues = []
         duplicate_issues = []
+        outlier_issues = []
         
         total_issues_expected = len(self.file_data)
         if self.check_duplicate_cb.isChecked():
+            total_issues_expected += 1
+        if self.check_outlier_cb.isChecked():
             total_issues_expected += 1
         
         progress_base = 40
@@ -487,6 +505,34 @@ class DataCleaningPanel(QWidget):
                 })
             
             self.result_summary.append(f"Found {len(duplicate_issues)} duplicate files\n")
+        
+        if self.check_outlier_cb.isChecked():
+            self.result_summary.append("\n=== Checking Outlier Spectra (异种类别) ===")
+            
+            self.progress_bar.setValue(90)
+            
+            spectra = []
+            paths = []
+            for filepath, data in self.file_data.items():
+                spectra.append((data['wavelengths'], data['intensities']))
+                paths.append(filepath)
+            
+            similarity = self.outlier_threshold_spin.value()
+            outlier_issues = self.data_cleaner.detect_outlier_spectra(
+                spectra, paths, similarity_threshold=similarity
+            )
+            
+            for issue in outlier_issues:
+                anomaly_issues.append({
+                    'file': os.path.basename(issue.file_path),
+                    'type': issue.issue_type,
+                    'severity': issue.severity,
+                    'description': issue.description,
+                    'full_path': issue.file_path,
+                    'indices': issue.indices
+                })
+            
+            self.result_summary.append(f"Found {len(outlier_issues)} outlier spectra\n")
         
         self.all_issues = self.all_issues + invalid_issues + anomaly_issues
         self._display_results()
