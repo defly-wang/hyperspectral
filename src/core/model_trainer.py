@@ -92,7 +92,6 @@ class SpectrumClassifier:
             total_files += len(files)
         
         loaded_files = 0
-        last_progress = -1
         
         for category in categories:
             category_dir = os.path.join(data_dir, category)
@@ -123,11 +122,9 @@ class SpectrumClassifier:
                     print(f"Error loading {filename}: {e}")
                 
                 loaded_files += 1
-                # 每5%进度或完成时更新，避免频繁回调
-                current_progress = int(loaded_files / total_files * 50)
-                if progress_callback and current_progress > last_progress:
-                    last_progress = current_progress
-                    progress_callback(last_progress, f"Loading: {category} ({loaded_files}/{total_files})")
+                # 每10%进度或完成时更新，避免频繁回调
+                if progress_callback and loaded_files == total_files or loaded_files % max(1, total_files // 10) == 0:
+                    progress_callback(int(loaded_files / total_files * 50), f"Loading: {loaded_files}/{total_files}")
         
         if not X:
             raise ValueError("No valid data loaded")
@@ -198,11 +195,9 @@ class SpectrumClassifier:
                     print(f"Error loading {filepath}: {e}")
                 
                 completed += 1
-                # 每5%进度或完成时更新，避免频繁回调
-                current_progress = int(completed / total_files * 50)
-                if progress_callback and current_progress > last_progress:
-                    last_progress = current_progress
-                    progress_callback(current_progress, f"Loading: {os.path.basename(filepath)}")
+                # 每10%进度或完成时更新，避免频繁回调
+                if progress_callback and completed == total_files or completed % max(1, total_files // 10) == 0:
+                    progress_callback(int(completed / total_files * 50), f"Loading: {completed}/{total_files}")
         
         X_train = np.array(X_train) if X_train else np.array([])
         y_train = np.array(y_train) if y_train else np.array([])
