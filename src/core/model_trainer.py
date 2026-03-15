@@ -31,6 +31,7 @@ def _load_single_file(filepath: str, min_wavelength: float, min_wl: int) -> Tupl
         category = os.path.basename(os.path.dirname(filepath))
         return features, category
     except Exception as e:
+        print(f"Error loading {filepath}: {e}")
         return None, None
 
 
@@ -168,15 +169,18 @@ class SpectrumClassifier:
         
         min_wl = self.min_wavelength
         
+        print(f"Starting ThreadPoolExecutor with {min(8, os.cpu_count() or 4)} workers...")
+        
         with ThreadPoolExecutor(max_workers=min(8, os.cpu_count() or 4)) as executor:
             futures = {
                 executor.submit(_load_single_file, filepath, min_wavelength, min_wl): (filepath, split_type, category)
                 for filepath, split_type, category in all_files
             }
             
+            print(f"Submitted {len(futures)} tasks to executor")
+            
             completed = 0
             total_files = len(all_files)
-            last_progress = -1
             for future in as_completed(futures):
                 filepath, split_type, category = futures[future]
                 try:
@@ -205,6 +209,8 @@ class SpectrumClassifier:
         y_val = np.array(y_val) if y_val else None
         X_test = np.array(X_test) if X_test else None
         y_test = np.array(y_test) if y_test else None
+        
+        print(f"Loading complete! Train: {len(X_train)}, Val: {len(X_val) if X_val is not None else 0}, Test: {len(X_test) if X_test is not None else 0}")
         
         return X_train, y_train, X_val, y_val, X_test, y_test
     
