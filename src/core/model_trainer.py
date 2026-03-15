@@ -1,6 +1,6 @@
 import os
 import numpy as np
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, LabelEncoder
@@ -46,9 +46,22 @@ class SpectrumClassifier:
         self.feature_length = max_wavelength - min_wavelength + 1
     
     def load_data_from_directory(self, data_dir: str, min_wavelength: float = 400,
-                                 use_split_dirs: bool = False) -> Tuple[np.ndarray, np.ndarray, 
+                                 use_split_dirs: bool = False,
+                                 progress_callback: Optional[Callable[[int, str], None]] = None) -> Tuple[np.ndarray, np.ndarray, 
                                                                        Optional[np.ndarray], Optional[np.ndarray],
                                                                        Optional[np.ndarray], Optional[np.ndarray]]:
+        """
+        从目录加载训练数据
+        
+        参数:
+            data_dir: 数据目录路径
+            min_wavelength: 最小波长过滤值
+            use_split_dirs: 是否使用已分割的目录结构 (train/val/test)
+            progress_callback: 进度回调函数，参数为 (进度百分比, 当前状态描述)
+            
+        返回:
+            (X_train, y_train, X_val, y_val, X_test, y_test) 元组
+        """
         X = []
         y = []
         X_val = None
@@ -66,9 +79,19 @@ class SpectrumClassifier:
             raise ValueError(f"No category directories found in {data_dir}")
         
         if use_split_dirs and 'train' in categories:
-            return self._load_from_split_dirs(data_dir, min_wavelength)
+            return self._load_from_split_dirs(data_dir, min_wavelength, progress_callback)
         
         print(f"Found {len(categories)} categories: {categories}")
+        
+        # 计算总文件数用于进度显示
+        total_files = 0
+        for category in categories:
+            category_dir = os.path.join(data_dir, category)
+            files = [f for f in os.listdir(category_dir) 
+                    if f.lower().endswith(('.xlsx', '.xls'))]
+            total_files += len(files)
+        
+        loaded_files = 0
         
         for category in categories:
             category_dir = os.path.join(data_dir, category)
@@ -76,6 +99,9 @@ class SpectrumClassifier:
                     if f.lower().endswith(('.xlsx', '.xls'))]
             
             print(f"Processing category '{category}' with {len(files)} files...")
+            
+            if progress_callback:
+                progress_callback(int(loaded_files / total_files * 50), f"Loading: {category}")
             
             for filename in files:
                 filepath = os.path.join(category_dir, filename)
@@ -88,6 +114,7 @@ class SpectrumClassifier:
                     intensities = data.intensities[mask]
                     
                     if len(intensities) < 10:
+                        loaded_files += 1
                         continue
                     
                     features = self._extract_features(wavelengths, intensities)
@@ -96,14 +123,30 @@ class SpectrumClassifier:
                     
                 except Exception as e:
                     print(f"Error loading {filename}: {e}")
-                    continue
+                
+                loaded_files += 1
+                # 每加载10个文件或完成时更新进度
+                if progress_callback and (loaded_files % 10 == 0 or loaded_files == total_files):
+                    progress_callback(int(loaded_files / total_files * 50), f"Loading: {filename}")
         
         if not X:
             raise ValueError("No valid data loaded")
         
         return np.array(X), np.array(y), None, None, None, None
     
-    def _load_from_split_dirs(self, data_dir: str, min_wavelength: float) -> Tuple:
+    def _load_from_split_dirs(self, data_dir: str, min_wavelength: float,
+                              progress_callback: Optional[Callable[[int, str], None]] = None) -> Tuple:
+        """
+        从已分割的目录加载数据 (train/val/test)
+        
+        参数:
+            data_dir: 数据根目录
+            min_wavelength: 最小波长
+            progress_callback: 进度回调函数
+            
+        返回:
+            (X_train, y_train, X_val, y_val, X_test, y_test) 元组
+        """
         categories = sorted([d for d in os.listdir(os.path.join(data_dir, 'train'))
                            if os.path.isdir(os.path.join(data_dir, 'train', d))])
         
@@ -135,6 +178,7 @@ class SpectrumClassifier:
             }
             
             completed = 0
+            total_files = len(all_files)
             for future in as_completed(futures):
                 filepath, split_type, category = futures[future]
                 try:
@@ -153,8 +197,9 @@ class SpectrumClassifier:
                     print(f"Error loading {filepath}: {e}")
                 
                 completed += 1
-                if completed % 50 == 0:
-                    print(f"Loaded {completed}/{len(all_files)} files...")
+                # 每加载10个文件或完成时更新进度
+                if progress_callback and (completed % 10 == 0 or completed == total_files):
+                    progress_callback(int(completed / total_files * 50), f"Loading: {os.path.basename(filepath)}")
         
         X_train = np.array(X_train) if X_train else np.array([])
         y_train = np.array(y_train) if y_train else np.array([])
