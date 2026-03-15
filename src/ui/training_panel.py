@@ -214,7 +214,7 @@ class TrainingPanel(QWidget):
         
         self.load_timer = QTimer()
         self.load_timer.timeout.connect(self._update_load_progress)
-        self.load_timer.start(200)
+        self.load_timer.start(400)
         
         self.load_thread = None
         self.load_finished = False

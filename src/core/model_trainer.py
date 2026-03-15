@@ -166,7 +166,7 @@ class SpectrumClassifier:
                 self.loaded_files = completed
                 self.load_progress = int(completed / len(all_files) * 50)
                 
-                if completed % 50 == 0:
+                if completed % 100 == 0:
                     elapsed = time.time() - start_time
                     avg_time = elapsed / completed
                     print(f"Loaded {completed}/{len(all_files)} files... ({elapsed:.1f}s elapsed, {avg_time*1000:.1f}ms/file)")
