@@ -1,6 +1,6 @@
 import os
 import numpy as np
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, Callable
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, LabelEncoder
@@ -68,7 +68,8 @@ class SpectrumClassifier:
         self.feature_length = max_wavelength - min_wavelength + 1
     
     def load_data_from_directory(self, data_dir: str, min_wavelength: float = 400,
-                                 use_split_dirs: bool = False) -> Tuple[np.ndarray, np.ndarray, 
+                                 use_split_dirs: bool = False,
+                                 progress_callback: Optional[Callable[[int], None]] = None) -> Tuple[np.ndarray, np.ndarray, 
                                                                        Optional[np.ndarray], Optional[np.ndarray],
                                                                        Optional[np.ndarray], Optional[np.ndarray]]:
         X = []
@@ -88,7 +89,7 @@ class SpectrumClassifier:
             raise ValueError(f"No category directories found in {data_dir}")
         
         if use_split_dirs and 'train' in categories:
-            return self._load_from_split_dirs(data_dir, min_wavelength)
+            return self._load_from_split_dirs(data_dir, min_wavelength, progress_callback)
         
         print(f"Found {len(categories)} categories: {categories}")
         
@@ -125,7 +126,8 @@ class SpectrumClassifier:
         
         return np.array(X), np.array(y), None, None, None, None
     
-    def _load_from_split_dirs(self, data_dir: str, min_wavelength: float) -> Tuple:
+    def _load_from_split_dirs(self, data_dir: str, min_wavelength: float,
+                              progress_callback: Optional[Callable[[int], None]] = None) -> Tuple:
         categories = sorted([d for d in os.listdir(os.path.join(data_dir, 'train'))
                            if os.path.isdir(os.path.join(data_dir, 'train', d))])
         
@@ -180,6 +182,9 @@ class SpectrumClassifier:
                 if completed % 50 == 0:
                     elapsed = time.time() - start_time
                     avg_time = elapsed / completed
+                    progress = int(completed / len(all_files) * 50)
+                    if progress_callback:
+                        progress_callback(progress)
                     print(f"Loaded {completed}/{len(all_files)} files... ({elapsed:.1f}s elapsed, {avg_time*1000:.1f}ms/file)")
         
         X_train = np.array(X_train) if X_train else np.array([])

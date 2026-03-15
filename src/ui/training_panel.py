@@ -197,13 +197,18 @@ class TrainingPanel(QWidget):
             self.classifier = SpectrumClassifier()
             
             self.result_text.append("Loading data...")
-            self.progress_bar.setValue(20)
+            self.progress_bar.setVisible(True)
+            self.progress_bar.setValue(5)
+            
+            def progress_callback(progress: int):
+                self.progress_bar.setValue(5 + progress)
             
             if hasattr(self, 'is_split_data') and self.is_split_data:
                 X_train, y_train, X_val, y_val, X_test, y_test = self.classifier.load_data_from_directory(
                     self.data_dir, 
                     min_wavelength=400,
-                    use_split_dirs=True
+                    use_split_dirs=True,
+                    progress_callback=progress_callback
                 )
                 self.result_text.append(f"Loaded {len(y_train)} training samples")
                 self.result_text.append(f"Using pre-split data (Train: {len(y_train)}, Val: {len(y_val) if y_val is not None else 0}, Test: {len(y_test) if y_test is not None else 0})")
@@ -211,7 +216,8 @@ class TrainingPanel(QWidget):
                 X, y, X_val, y_val, X_test, y_test = self.classifier.load_data_from_directory(
                     self.data_dir, 
                     min_wavelength=400,
-                    use_split_dirs=False
+                    use_split_dirs=False,
+                    progress_callback=progress_callback
                 )
                 y_train = y
                 self.result_text.append(f"Loaded {len(X)} samples with {X.shape[1]} features")
