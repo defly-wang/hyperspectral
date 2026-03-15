@@ -61,6 +61,9 @@ class TrainingPanel(QWidget):
         test_size_layout.addStretch()
         model_layout.addLayout(test_size_layout)
         
+        self.test_size_label = test_size_layout.itemAt(0).widget()
+        self.test_size_layout = test_size_layout
+        
         self.model_group.setLayout(model_layout)
         
         self.train_btn = QPushButton(t("start_training"))
@@ -152,7 +155,10 @@ class TrainingPanel(QWidget):
             )
             self.is_split_data = True
             self.split_data = None
+            self.test_size_label.setVisible(False)
+            self.test_size_spin.setVisible(False)
         else:
+            # 未分割的数据集
             categories = [d for d in os.listdir(directory) 
                          if os.path.isdir(os.path.join(directory, d))]
             
@@ -175,6 +181,8 @@ class TrainingPanel(QWidget):
             )
             self.is_split_data = False
             self.split_data = None
+            self.test_size_label.setVisible(True)
+            self.test_size_spin.setVisible(True)
         
         self.categories = categories
         self.train_btn.setEnabled(True)
