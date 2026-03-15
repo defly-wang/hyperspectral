@@ -15,34 +15,12 @@ def _load_single_file(args: Tuple[str, float, int]) -> Tuple[np.ndarray, str]:
     """加载单个文件（独立函数，用于多进程）"""
     filepath, min_wavelength, min_wl = args
     try:
-        import openpyxl
+        from .xlsx_reader import load_xlsx_spectrum
         
-        wb = openpyxl.load_workbook(filepath, data_only=True, read_only=True)
-        ws = wb.active
-        
-        wavelengths = []
-        intensities = []
-        
-        for row in ws.iter_rows(min_row=1, values_only=True):
-            if row is None:
-                continue
-            try:
-                wl = float(row[0])
-                intensity = float(row[4])
-                if wl is not None and intensity is not None and not (np.isnan(wl) or np.isnan(intensity)):
-                    wavelengths.append(wl)
-                    intensities.append(intensity)
-            except (ValueError, TypeError, IndexError):
-                continue
-        
-        wb.close()
+        wavelengths, intensities = load_xlsx_spectrum(filepath, min_wavelength)
         
         if len(intensities) < 10:
             return None, None
-        
-        mask = np.array(wavelengths) >= min_wavelength
-        wavelengths = np.array(wavelengths)[mask]
-        intensities = np.array(intensities)[mask]
         
         features = np.zeros(2501 - min_wl, dtype=np.float32)
         for wl, intensity in zip(wavelengths, intensities):

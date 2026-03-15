@@ -82,6 +82,47 @@ def parse_xlsx_file(filepath: str, wavelength_col: int = 0, intensity_col: int =
     )
 
 
+def load_xlsx_spectrum(filepath: str, min_wavelength: float = 400) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    快速加载xlsx文件中的光谱数据（用于多进程）
+    
+    参数:
+        filepath: Excel文件路径
+        min_wavelength: 最小波长过滤值
+        
+    返回:
+        (wavelengths, intensities) 元组
+    """
+    wb = openpyxl.load_workbook(filepath, data_only=True, read_only=True)
+    ws = wb.active
+    
+    wavelengths = []
+    intensities = []
+    
+    for row in ws.iter_rows(min_row=1, values_only=True):
+        if row is None:
+            continue
+        try:
+            wl = float(row[0])
+            intensity = float(row[4])
+            if wl is not None and intensity is not None and not (np.isnan(wl) or np.isnan(intensity)):
+                wavelengths.append(wl)
+                intensities.append(intensity)
+        except (ValueError, TypeError, IndexError):
+            continue
+    
+    wb.close()
+    
+    if len(intensities) < 10:
+        return np.array([]), np.array([])
+    
+    wavelengths = np.array(wavelengths)
+    intensities = np.array(intensities)
+    
+    mask = wavelengths >= min_wavelength
+    return wavelengths[mask], intensities[mask]
+
+
 def load_xlsx_files(folder_path: str) -> List[Tuple[str, SpectrumData]]:
     """
     批量加载文件夹中的Excel文件
