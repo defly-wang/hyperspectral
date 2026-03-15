@@ -101,8 +101,8 @@ class DataCleaningPanel(QWidget):
         
         outlier_layout.addWidget(QLabel(t("similarity") + ":"))
         self.outlier_threshold_spin = QDoubleSpinBox()
-        self.outlier_threshold_spin.setRange(0.5, 0.99)
-        self.outlier_threshold_spin.setValue(0.85)
+        self.outlier_threshold_spin.setRange(0.1, 0.6)
+        self.outlier_threshold_spin.setValue(0.6)
         self.outlier_threshold_spin.setSingleStep(0.05)
         self.outlier_threshold_spin.setSuffix(" (correlation)")
         outlier_layout.addWidget(self.outlier_threshold_spin)
