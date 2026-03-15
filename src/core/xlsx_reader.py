@@ -2,13 +2,14 @@
 Excel文件读取模块 - 用于解析xlsx/xls格式的光谱数据文件
 Excel File Reader Module
 支持解析Excel格式的光谱数据文件
+使用python-calamine库（Rust编写，性能更好）
 """
 
 import os
 import numpy as np
 from dataclasses import dataclass
 from typing import List, Tuple
-import openpyxl
+from python_calamine import load_workbook
 
 
 @dataclass
@@ -43,36 +44,36 @@ def parse_xlsx_file(filepath: str, wavelength_col: int = 0, intensity_col: int =
     返回:
         SpectrumData: 包含波长、强度和元数据的光谱数据对象
     """
-    # 使用openpyxl加载工作簿，data_only=True表示读取单元格的值而非公式
-    wb = openpyxl.load_workbook(filepath, data_only=True)
-    ws = wb.active                          # 获取活动工作表
+    wb = load_workbook(filepath)
+    ws = wb.get_sheet()
+    sheet_name = ws.name()
     
-    wavelengths = []                         # 波长列表
-    intensities = []                         # 强度列表
+    wavelengths = []
+    intensities = []
     
-    # 遍历所有行
-    for row in ws.iter_rows(min_row=1, values_only=True):
+    for row in ws.iter_rows():
         if row is None:
             continue
         
         try:
-            # 提取波长和强度值
-            wl = float(row[wavelength_col])
-            intensity = float(row[intensity_col])
-            # 过滤无效值（None和NaN）
-            if wl is not None and intensity is not None and not (np.isnan(wl) or np.isnan(intensity)):
+            wl_cell = row[wavelength_col]
+            int_cell = row[intensity_col]
+            
+            if wl_cell.value is None or int_cell.value is None:
+                continue
+            
+            wl = float(wl_cell.value)
+            intensity = float(int_cell.value)
+            
+            if not (np.isnan(wl) or np.isnan(intensity)):
                 wavelengths.append(wl)
                 intensities.append(intensity)
         except (ValueError, TypeError, IndexError):
             continue
     
-    # 关闭工作簿
-    wb.close()
-    
-    # 创建元数据
     metadata = XLSXMetadata(
         filename=os.path.basename(filepath),
-        sheet_name=ws.title
+        sheet_name=sheet_name
     )
     
     return SpectrumData(
@@ -93,25 +94,31 @@ def load_xlsx_spectrum(filepath: str, min_wavelength: float = 400) -> Tuple[np.n
     返回:
         (wavelengths, intensities) 元组
     """
-    wb = openpyxl.load_workbook(filepath, data_only=True, read_only=True)
-    ws = wb.active
+    wb = load_workbook(filepath)
+    ws = wb.get_sheet()
     
     wavelengths = []
     intensities = []
     
-    for row in ws.iter_rows(min_row=1, values_only=True):
+    for row in ws.iter_rows():
         if row is None:
             continue
+        
         try:
-            wl = float(row[0])
-            intensity = float(row[4])
-            if wl is not None and intensity is not None and not (np.isnan(wl) or np.isnan(intensity)):
+            wl_cell = row[0]
+            int_cell = row[4]
+            
+            if wl_cell.value is None or int_cell.value is None:
+                continue
+            
+            wl = float(wl_cell.value)
+            intensity = float(int_cell.value)
+            
+            if not (np.isnan(wl) or np.isnan(intensity)):
                 wavelengths.append(wl)
                 intensities.append(intensity)
         except (ValueError, TypeError, IndexError):
             continue
-    
-    wb.close()
     
     if len(intensities) < 10:
         return np.array([]), np.array([])
@@ -137,7 +144,6 @@ def load_xlsx_files(folder_path: str) -> List[Tuple[str, SpectrumData]]:
     if not os.path.isdir(folder_path):
         return results
     
-    # 遍历文件夹中的所有Excel文件
     for filename in sorted(os.listdir(folder_path)):
         if filename.lower().endswith(('.xlsx', '.xls')):
             filepath = os.path.join(folder_path, filename)
