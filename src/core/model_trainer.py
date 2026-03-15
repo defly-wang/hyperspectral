@@ -92,6 +92,7 @@ class SpectrumClassifier:
             total_files += len(files)
         
         loaded_files = 0
+        last_progress = -1
         
         for category in categories:
             category_dir = os.path.join(data_dir, category)
@@ -99,9 +100,6 @@ class SpectrumClassifier:
                     if f.lower().endswith(('.xlsx', '.xls'))]
             
             print(f"Processing category '{category}' with {len(files)} files...")
-            
-            if progress_callback:
-                progress_callback(int(loaded_files / total_files * 50), f"Loading: {category}")
             
             for filename in files:
                 filepath = os.path.join(category_dir, filename)
@@ -125,9 +123,11 @@ class SpectrumClassifier:
                     print(f"Error loading {filename}: {e}")
                 
                 loaded_files += 1
-                # 每加载10个文件或完成时更新进度
-                if progress_callback and (loaded_files % 10 == 0 or loaded_files == total_files):
-                    progress_callback(int(loaded_files / total_files * 50), f"Loading: {filename}")
+                # 每5%进度或完成时更新，避免频繁回调
+                current_progress = int(loaded_files / total_files * 50)
+                if progress_callback and current_progress > last_progress:
+                    last_progress = current_progress
+                    progress_callback(last_progress, f"Loading: {category} ({loaded_files}/{total_files})")
         
         if not X:
             raise ValueError("No valid data loaded")
@@ -179,6 +179,7 @@ class SpectrumClassifier:
             
             completed = 0
             total_files = len(all_files)
+            last_progress = -1
             for future in as_completed(futures):
                 filepath, split_type, category = futures[future]
                 try:
@@ -197,9 +198,11 @@ class SpectrumClassifier:
                     print(f"Error loading {filepath}: {e}")
                 
                 completed += 1
-                # 每加载10个文件或完成时更新进度
-                if progress_callback and (completed % 10 == 0 or completed == total_files):
-                    progress_callback(int(completed / total_files * 50), f"Loading: {os.path.basename(filepath)}")
+                # 每5%进度或完成时更新，避免频繁回调
+                current_progress = int(completed / total_files * 50)
+                if progress_callback and current_progress > last_progress:
+                    last_progress = current_progress
+                    progress_callback(current_progress, f"Loading: {os.path.basename(filepath)}")
         
         X_train = np.array(X_train) if X_train else np.array([])
         y_train = np.array(y_train) if y_train else np.array([])
