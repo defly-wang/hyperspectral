@@ -1,4 +1,4 @@
-# 高光谱数据管理系统 - HyperspectralDMS
+# 高光谱数据处理系统
 
 基于 PyQt6 开发的高光谱数据处理与可视化桌面应用程序。
 
@@ -19,6 +19,7 @@
 - **无效数据检测**: 空值、NaN、无穷值、负值、超出范围值、数据长度不匹配、方差过小
 - **异常数据检测**: IQR和Z-Score两种方法，可调阈值
 - **重复数据检测**: 基于相关系数的光谱相似度检测
+- **异种类别数据检测**: 检测与整体趋势差异大的异常光谱
 - **文件格式检查**: 支持格式验证、表头检查、编码检测
 - **报告导出**: 支持导出清洗报告
 - **数据预览**: 点击问题列表查看对应光谱曲线
@@ -54,7 +55,7 @@
 - NumPy
 - Matplotlib
 - SciPy
-- openpyxl
+- openpyxl (已替换为 python-calamine，提升读取性能)
 - scikit-learn
 - joblib
 
@@ -86,10 +87,10 @@ python main.py
 ## 打包
 
 ```bash
-./build.sh
+./build.bat
 ```
 
-打包后的可执行文件位于 `dist/HyperspectralDMS/` 目录。
+打包后的可执行文件位于 `dist/HyperspectralDataProcessingSystem/` 目录。
 
 ## 数据格式
 
@@ -159,9 +160,8 @@ training_data/
 hyperspectral/
 ├── main.py                      # 程序入口
 ├── requirements.txt              # Python 依赖
-├── build.sh                     # 打包脚本
-├── build.bat                    # Windows打包脚本
-├── hyperspectral.spec           # PyInstaller 配置
+├── build.bat                    # 打包脚本
+├── HyperspectralDataProcessingSystem.spec  # PyInstaller 配置
 └── src/
     ├── core/
     │   ├── isf_reader.py       # ISF 文件解析
