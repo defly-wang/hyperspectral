@@ -8,6 +8,7 @@ from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.svm import SVC
 from sklearn.metrics import classification_report, accuracy_score
 import joblib
+import time
 
 
 def _load_single_file(filepath: str, min_wavelength: float, min_wl: int) -> Tuple[np.ndarray, str]:
@@ -128,6 +129,8 @@ class SpectrumClassifier:
         
         min_wl = self.min_wavelength
         
+        start_time = time.time()
+        
         with ThreadPoolExecutor(max_workers=min(8, os.cpu_count() or 4)) as executor:
             futures = {
                 executor.submit(_load_single_file, filepath, min_wavelength, min_wl): (filepath, split_type, category)
@@ -154,7 +157,9 @@ class SpectrumClassifier:
                 
                 completed += 1
                 if completed % 50 == 0:
-                    print(f"Loaded {completed}/{len(all_files)} files...")
+                    elapsed = time.time() - start_time
+                    avg_time = elapsed / completed
+                    print(f"Loaded {completed}/{len(all_files)} files... ({elapsed:.1f}s elapsed, {avg_time*1000:.1f}ms/file)")
         
         X_train = np.array(X_train) if X_train else np.array([])
         y_train = np.array(y_train) if y_train else np.array([])
