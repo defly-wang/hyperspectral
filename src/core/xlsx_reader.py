@@ -9,7 +9,7 @@ import os
 import numpy as np
 from dataclasses import dataclass
 from typing import List, Tuple
-from python_calamine import load_workbook
+from python_calamine import CalamineWorkbook
 
 
 @dataclass
@@ -44,26 +44,29 @@ def parse_xlsx_file(filepath: str, wavelength_col: int = 0, intensity_col: int =
     返回:
         SpectrumData: 包含波长、强度和元数据的光谱数据对象
     """
-    wb = load_workbook(filepath)
-    ws = wb.get_sheet()
-    sheet_name = ws.name()
+    wb = CalamineWorkbook.from_path(filepath)
+    sheet_names = wb.sheet_names
+    ws = wb.get_sheet_by_index(0)
+    sheet_name = sheet_names[0] if sheet_names else ""
     
     wavelengths = []
     intensities = []
     
-    for row in ws.iter_rows():
+    data = ws.to_python()
+    
+    for row in data:
         if row is None:
             continue
         
         try:
-            wl_cell = row[wavelength_col]
-            int_cell = row[intensity_col]
+            wl = row[wavelength_col]
+            intensity = row[intensity_col]
             
-            if wl_cell.value is None or int_cell.value is None:
+            if wl is None or intensity is None:
                 continue
             
-            wl = float(wl_cell.value)
-            intensity = float(int_cell.value)
+            wl = float(wl)
+            intensity = float(intensity)
             
             if not (np.isnan(wl) or np.isnan(intensity)):
                 wavelengths.append(wl)
@@ -94,25 +97,27 @@ def load_xlsx_spectrum(filepath: str, min_wavelength: float = 400) -> Tuple[np.n
     返回:
         (wavelengths, intensities) 元组
     """
-    wb = load_workbook(filepath)
-    ws = wb.get_sheet()
+    wb = CalamineWorkbook.from_path(filepath)
+    ws = wb.get_sheet_by_index(0)
     
     wavelengths = []
     intensities = []
     
-    for row in ws.iter_rows():
+    data = ws.to_python()
+    
+    for row in data:
         if row is None:
             continue
         
         try:
-            wl_cell = row[0]
-            int_cell = row[4]
+            wl = row[0]
+            intensity = row[4]
             
-            if wl_cell.value is None or int_cell.value is None:
+            if wl is None or intensity is None:
                 continue
             
-            wl = float(wl_cell.value)
-            intensity = float(int_cell.value)
+            wl = float(wl)
+            intensity = float(intensity)
             
             if not (np.isnan(wl) or np.isnan(intensity)):
                 wavelengths.append(wl)
