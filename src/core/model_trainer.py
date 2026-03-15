@@ -66,6 +66,9 @@ class SpectrumClassifier:
         self.min_wavelength = min_wavelength
         self.max_wavelength = max_wavelength
         self.feature_length = max_wavelength - min_wavelength + 1
+        self.load_progress = 0  # 加载进度 (0-100)
+        self.total_files = 0     # 总文件数
+        self.loaded_files = 0    # 已加载文件数
     
     def load_data_from_directory(self, data_dir: str, min_wavelength: float = 400,
                                  use_split_dirs: bool = False,
@@ -152,6 +155,9 @@ class SpectrumClassifier:
         
         min_wl = self.min_wavelength
         
+        self.total_files = len(all_files)
+        self.loaded_files = 0
+        
         start_time = time.time()
         
         with ProcessPoolExecutor(max_workers=min(8, os.cpu_count() or 4)) as executor:
@@ -179,12 +185,12 @@ class SpectrumClassifier:
                     print(f"Error loading {filepath}: {e}")
                 
                 completed += 1
+                self.loaded_files = completed
+                self.load_progress = int(completed / len(all_files) * 50)
+                
                 if completed % 50 == 0:
                     elapsed = time.time() - start_time
                     avg_time = elapsed / completed
-                    progress = int(completed / len(all_files) * 50)
-                    if progress_callback:
-                        progress_callback(progress)
                     print(f"Loaded {completed}/{len(all_files)} files... ({elapsed:.1f}s elapsed, {avg_time*1000:.1f}ms/file)")
         
         X_train = np.array(X_train) if X_train else np.array([])

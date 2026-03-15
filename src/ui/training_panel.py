@@ -1,7 +1,7 @@
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
                              QComboBox, QPushButton, QGroupBox, QFileDialog,
                              QTextEdit, QDoubleSpinBox, QProgressBar)
-from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtCore import Qt, pyqtSignal, QTimer
 import os
 from ..core.i18n import t
 
@@ -91,6 +91,11 @@ class TrainingPanel(QWidget):
         main_layout.addWidget(self.progress_bar)
         main_layout.addWidget(self.result_group)
         main_layout.addStretch()
+    
+    def _update_load_progress(self):
+        if hasattr(self, 'classifier') and self.classifier:
+            progress = self.classifier.load_progress
+            self.progress_bar.setValue(5 + progress)
     
     def _select_data_directory(self):
         directory = QFileDialog.getExistingDirectory(
@@ -184,67 +189,129 @@ class TrainingPanel(QWidget):
         self.progress_bar.setValue(10)
         self.result_text.clear()
         
-        try:
-            from ..core.model_trainer import SpectrumClassifier
-            
-            model_type_map = {
-                t("random_forest"): "rf",
-                t("svm"): "svm",
-                t("gradient_boosting"): "gb"
-            }
-            model_type = model_type_map[self.model_type_combo.currentText()]
-            
-            self.classifier = SpectrumClassifier()
-            
-            self.result_text.append("Loading data...")
-            self.progress_bar.setVisible(True)
-            self.progress_bar.setValue(5)
-            
-            def progress_callback(progress: int):
-                self.progress_bar.setValue(5 + progress)
-            
+        from ..core.model_trainer import SpectrumClassifier
+        
+        model_type_map = {
+            t("random_forest"): "rf",
+            t("svm"): "svm",
+            t("gradient_boosting"): "gb"
+        }
+        model_type = model_type_map[self.model_type_combo.currentText()]
+        
+        self.classifier = SpectrumClassifier()
+        
+        self.result_text.append("Loading data...")
+        self.progress_bar.setVisible(True)
+        self.progress_bar.setValue(5)
+        
+        self.load_timer = QTimer()
+        self.load_timer.timeout.connect(self._update_load_progress)
+        self.load_timer.start(200)
+        
+        self.load_thread = None
+        self.load_finished = False
+        self.X_train = None
+        self.y_train = None
+        self.X_val = None
+        self.y_val = None
+        self.X_test = None
+        self.y_test = None
+        
+        def do_load():
             if hasattr(self, 'is_split_data') and self.is_split_data:
-                X_train, y_train, X_val, y_val, X_test, y_test = self.classifier.load_data_from_directory(
+                self.X_train, self.y_train, self.X_val, self.y_val, self.X_test, self.y_test = self.classifier.load_data_from_directory(
                     self.data_dir, 
                     min_wavelength=400,
-                    use_split_dirs=True,
-                    progress_callback=progress_callback
+                    use_split_dirs=True
                 )
-                self.result_text.append(f"Loaded {len(y_train)} training samples")
-                self.result_text.append(f"Using pre-split data (Train: {len(y_train)}, Val: {len(y_val) if y_val is not None else 0}, Test: {len(y_test) if y_test is not None else 0})")
             else:
-                X, y, X_val, y_val, X_test, y_test = self.classifier.load_data_from_directory(
+                X, y, self.X_val, self.y_val, self.X_test, self.y_test = self.classifier.load_data_from_directory(
                     self.data_dir, 
                     min_wavelength=400,
-                    use_split_dirs=False,
-                    progress_callback=progress_callback
+                    use_split_dirs=False
                 )
-                y_train = y
-                self.result_text.append(f"Loaded {len(X)} samples with {X.shape[1]} features")
-            
-            self.result_text.append(f"Classes: {', '.join(self.classifier.get_class_names())}")
-            self.progress_bar.setValue(50)
-            
-            self.result_text.append(f"\nTraining {model_type} model...")
-            self.progress_bar.setValue(60)
-            
-            if hasattr(self, 'is_split_data') and self.is_split_data:
-                result = self.classifier.train(
-                    X_train, y_train, 
-                    model_type=model_type,
-                    random_state=42,
-                    X_val=X_val if X_val is not None else None, 
-                    y_val=y_val if y_val is not None else None,
-                    X_test=X_test if X_test is not None else None, 
-                    y_test=y_test if y_test is not None else None
-                )
-            else:
-                result = self.classifier.train(
-                    X, y, 
-                    model_type=model_type,
-                    test_size=self.test_size_spin.value(),
-                    random_state=42
-                )
+                self.y_train = y
+            self.load_finished = True
+        
+        import threading
+        self.load_thread = threading.Thread(target=do_load)
+        self.load_thread.start()
+        
+        self._check_load_and_continue(model_type)
+    
+    def _check_load_and_continue(self, model_type: str):
+        if not self.load_finished:
+            QTimer.singleShot(100, lambda: self._check_load_and_continue(model_type))
+            return
+        
+        self.load_timer.stop()
+        
+        if hasattr(self, 'is_split_data') and self.is_split_data:
+            self.result_text.append(f"Loaded {len(self.y_train)} training samples")
+            self.result_text.append(f"Using pre-split data (Train: {len(self.y_train)}, Val: {len(self.y_val) if self.y_val is not None else 0}, Test: {len(self.y_test) if self.y_test is not None else 0})")
+        else:
+            self.result_text.append(f"Loaded {len(self.y_train)} samples with {self.classifier.feature_length} features")
+        
+        self.result_text.append(f"Classes: {', '.join(self.classifier.get_class_names())}")
+        self.progress_bar.setValue(50)
+        
+        self.result_text.append(f"\nTraining {model_type} model...")
+        self.progress_bar.setValue(60)
+        
+        if hasattr(self, 'is_split_data') and self.is_split_data:
+            result = self.classifier.train(
+                self.X_train, self.y_train, 
+                model_type=model_type,
+                random_state=42,
+                X_val=self.X_val if self.X_val is not None else None, 
+                y_val=self.y_val if self.y_val is not None else None,
+                X_test=self.X_test if self.X_test is not None else None, 
+                y_test=self.y_test if self.y_test is not None else None
+            )
+        else:
+            result = self.classifier.train(
+                self.X_train, self.y_train, 
+                model_type=model_type,
+                test_size=self.test_size_spin.value(),
+                random_state=42
+            )
+    
+    def _check_load_and_continue(self, model_type: str):
+        if not self.load_finished:
+            QTimer.singleShot(100, lambda: self._check_load_and_continue(model_type))
+            return
+        
+        self.load_timer.stop()
+        
+        if hasattr(self, 'is_split_data') and self.is_split_data:
+            self.result_text.append(f"Loaded {len(self.y_train)} training samples")
+            self.result_text.append(f"Using pre-split data (Train: {len(self.y_train)}, Val: {len(self.y_val) if self.y_val is not None else 0}, Test: {len(self.y_test) if self.y_test is not None else 0})")
+        else:
+            self.result_text.append(f"Loaded {len(self.y_train)} samples with {self.classifier.feature_length} features")
+        
+        self.result_text.append(f"Classes: {', '.join(self.classifier.get_class_names())}")
+        self.progress_bar.setValue(50)
+        
+        self.result_text.append(f"\nTraining {model_type} model...")
+        self.progress_bar.setValue(60)
+        
+        if hasattr(self, 'is_split_data') and self.is_split_data:
+            result = self.classifier.train(
+                self.X_train, self.y_train, 
+                model_type=model_type,
+                random_state=42,
+                X_val=self.X_val if self.X_val is not None else None, 
+                y_val=self.y_val if self.y_val is not None else None,
+                X_test=self.X_test if self.X_test is not None else None, 
+                y_test=self.y_test if self.y_test is not None else None
+            )
+        else:
+            result = self.classifier.train(
+                self.X_train, self.y_train, 
+                model_type=model_type,
+                test_size=self.test_size_spin.value(),
+                random_state=42
+            )
             
             self.progress_bar.setValue(90)
             
