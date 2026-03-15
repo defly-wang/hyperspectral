@@ -283,35 +283,36 @@ class TrainingPanel(QWidget):
         
         self.load_timer.stop()
         
-        if hasattr(self, 'is_split_data') and self.is_split_data:
-            self.result_text.append(f"Loaded {len(self.y_train)} training samples")
-            self.result_text.append(f"Using pre-split data (Train: {len(self.y_train)}, Val: {len(self.y_val) if self.y_val is not None else 0}, Test: {len(self.y_test) if self.y_test is not None else 0})")
-        else:
-            self.result_text.append(f"Loaded {len(self.y_train)} samples with {self.classifier.feature_length} features")
-        
-        self.result_text.append(f"Classes: {', '.join(self.classifier.get_class_names())}")
-        self.progress_bar.setValue(50)
-        
-        self.result_text.append(f"\nTraining {model_type} model...")
-        self.progress_bar.setValue(60)
-        
-        if hasattr(self, 'is_split_data') and self.is_split_data:
-            result = self.classifier.train(
-                self.X_train, self.y_train, 
-                model_type=model_type,
-                random_state=42,
-                X_val=self.X_val if self.X_val is not None else None, 
-                y_val=self.y_val if self.y_val is not None else None,
-                X_test=self.X_test if self.X_test is not None else None, 
-                y_test=self.y_test if self.y_test is not None else None
-            )
-        else:
-            result = self.classifier.train(
-                self.X_train, self.y_train, 
-                model_type=model_type,
-                test_size=self.test_size_spin.value(),
-                random_state=42
-            )
+        try:
+            if hasattr(self, 'is_split_data') and self.is_split_data:
+                self.result_text.append(f"Loaded {len(self.y_train)} training samples")
+                self.result_text.append(f"Using pre-split data (Train: {len(self.y_train)}, Val: {len(self.y_val) if self.y_val is not None else 0}, Test: {len(self.y_test) if self.y_test is not None else 0})")
+            else:
+                self.result_text.append(f"Loaded {len(self.y_train)} samples with {self.classifier.feature_length} features")
+            
+            self.result_text.append(f"Classes: {', '.join(self.classifier.get_class_names())}")
+            self.progress_bar.setValue(50)
+            
+            self.result_text.append(f"\nTraining {model_type} model...")
+            self.progress_bar.setValue(60)
+            
+            if hasattr(self, 'is_split_data') and self.is_split_data:
+                result = self.classifier.train(
+                    self.X_train, self.y_train, 
+                    model_type=model_type,
+                    random_state=42,
+                    X_val=self.X_val if self.X_val is not None else None, 
+                    y_val=self.y_val if self.y_val is not None else None,
+                    X_test=self.X_test if self.X_test is not None else None, 
+                    y_test=self.y_test if self.y_test is not None else None
+                )
+            else:
+                result = self.classifier.train(
+                    self.X_train, self.y_train, 
+                    model_type=model_type,
+                    test_size=self.test_size_spin.value(),
+                    random_state=42
+                )
             
             self.progress_bar.setValue(90)
             
