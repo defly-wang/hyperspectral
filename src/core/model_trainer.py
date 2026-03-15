@@ -15,26 +15,23 @@ def _load_single_file(args: Tuple[str, float, int]) -> Tuple[np.ndarray, str]:
     """加载单个文件（独立函数，用于多进程）"""
     filepath, min_wavelength, min_wl = args
     try:
-        from python_calamine import load_workbook
+        import openpyxl
         
-        wb = load_workbook(filepath)
-        ws = wb.get_sheet()
+        wb = openpyxl.load_workbook(filepath, data_only=True, read_only=True)
+        ws = wb.active
         
         wavelengths = []
         intensities = []
         
-        for row in ws.iter_rows():
+        for row in ws.iter_rows(min_row=1, values_only=True):
             if row is None:
                 continue
             try:
-                wl_val = row[0].value
-                int_val = row[4].value
-                if wl_val is not None and int_val is not None:
-                    wl = float(wl_val)
-                    intensity = float(int_val)
-                    if not (np.isnan(wl) or np.isnan(intensity)):
-                        wavelengths.append(wl)
-                        intensities.append(intensity)
+                wl = float(row[0])
+                intensity = float(row[4])
+                if wl is not None and intensity is not None and not (np.isnan(wl) or np.isnan(intensity)):
+                    wavelengths.append(wl)
+                    intensities.append(intensity)
             except (ValueError, TypeError, IndexError):
                 continue
         
