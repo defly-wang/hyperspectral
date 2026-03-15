@@ -1,7 +1,7 @@
 import os
 import numpy as np
 from typing import List, Tuple, Optional
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
@@ -11,17 +11,38 @@ import joblib
 import time
 
 
-def _load_single_file(filepath: str, min_wavelength: float, min_wl: int) -> Tuple[np.ndarray, str]:
+def _load_single_file(args: Tuple[str, float, int]) -> Tuple[np.ndarray, str]:
+    """加载单个文件（独立函数，用于多进程）"""
+    filepath, min_wavelength, min_wl = args
     try:
-        from .xlsx_reader import parse_xlsx_file
-        data = parse_xlsx_file(filepath)
+        import openpyxl
         
-        mask = data.wavelengths >= min_wavelength
-        wavelengths = data.wavelengths[mask]
-        intensities = data.intensities[mask]
+        wb = openpyxl.load_workbook(filepath, data_only=True, read_only=True)
+        ws = wb.active
+        
+        wavelengths = []
+        intensities = []
+        
+        for row in ws.iter_rows(min_row=1, values_only=True):
+            if row is None:
+                continue
+            try:
+                wl = float(row[0])
+                intensity = float(row[4])
+                if wl is not None and intensity is not None and not (np.isnan(wl) or np.isnan(intensity)):
+                    wavelengths.append(wl)
+                    intensities.append(intensity)
+            except (ValueError, TypeError, IndexError):
+                continue
+        
+        wb.close()
         
         if len(intensities) < 10:
             return None, None
+        
+        mask = np.array(wavelengths) >= min_wavelength
+        wavelengths = np.array(wavelengths)[mask]
+        intensities = np.array(intensities)[mask]
         
         features = np.zeros(2501 - min_wl, dtype=np.float32)
         for wl, intensity in zip(wavelengths, intensities):
@@ -131,9 +152,9 @@ class SpectrumClassifier:
         
         start_time = time.time()
         
-        with ThreadPoolExecutor(max_workers=min(8, os.cpu_count() or 4)) as executor:
+        with ProcessPoolExecutor(max_workers=min(8, os.cpu_count() or 4)) as executor:
             futures = {
-                executor.submit(_load_single_file, filepath, min_wavelength, min_wl): (filepath, split_type, category)
+                executor.submit(_load_single_file, (filepath, min_wavelength, min_wl)): (filepath, split_type, category)
                 for filepath, split_type, category in all_files
             }
             
