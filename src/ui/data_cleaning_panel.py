@@ -242,12 +242,14 @@ class DataCleaningPanel(QWidget):
                     
                     if ext in ('.xlsx', '.xls'):
                         try:
-                            import openpyxl
-                            wb = openpyxl.load_workbook(filepath, data_only=True)
-                            ws = wb.active
+                            from python_calamine import CalamineWorkbook
+                            wb = CalamineWorkbook.from_path(filepath)
+                            ws = wb.get_sheet_by_index(0)
+                            data_check = ws.to_python()
+                            
                             has_wave = False
                             has_intensity = False
-                            for row in ws.iter_rows(max_row=10, values_only=True):
+                            for row in data_check[:10]:
                                 if row and len(row) > 0 and row[0] is not None:
                                     try:
                                         float(row[0])
@@ -260,7 +262,7 @@ class DataCleaningPanel(QWidget):
                                         has_intensity = True
                                     except:
                                         pass
-                            wb.close()
+                            
                             if not has_wave or not has_intensity:
                                 self.all_issues.append({
                                     'file': os.path.basename(filepath),
