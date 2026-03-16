@@ -30,26 +30,6 @@ class DataCleaningPanel(QWidget):
         
         main_layout = QVBoxLayout(self)
         
-        self.data_group = QGroupBox(t("data_source"))
-        data_layout = QVBoxLayout()
-        
-        data_path_layout = QHBoxLayout()
-        self.data_path_label = QLabel(t("no_folder_selected"))
-        self.data_path_label.setWordWrap(True)
-        data_path_layout.addWidget(self.data_path_label)
-        
-        self.select_data_btn = QPushButton(t("select_folder"))
-        self.select_data_btn.clicked.connect(self._select_data_folder)
-        data_path_layout.addWidget(self.select_data_btn)
-        
-        data_layout.addLayout(data_path_layout)
-        
-        self.file_count_label = QLabel("")
-        self.file_count_label.setStyleSheet("color: gray;")
-        data_layout.addWidget(self.file_count_label)
-        
-        self.data_group.setLayout(data_layout)
-        
         self.options_group = QGroupBox(t("detection_options"))
         options_layout = QVBoxLayout()
         
@@ -110,6 +90,30 @@ class DataCleaningPanel(QWidget):
         options_layout.addLayout(outlier_layout)
         
         self.options_group.setLayout(options_layout)
+        
+        top_layout = QHBoxLayout()
+        top_layout.addWidget(self.options_group, 3)
+        
+        data_group_widget = QWidget()
+        data_group_layout = QVBoxLayout()
+        
+        data_path_layout = QHBoxLayout()
+        self.data_path_label = QLabel(t("no_folder_selected"))
+        self.data_path_label.setWordWrap(True)
+        data_path_layout.addWidget(self.data_path_label, 1)
+        
+        self.select_data_btn = QPushButton(t("select_folder"))
+        self.select_data_btn.clicked.connect(self._select_data_folder)
+        data_path_layout.addWidget(self.select_data_btn)
+        
+        data_group_layout.addLayout(data_path_layout)
+        
+        self.file_count_label = QLabel("")
+        self.file_count_label.setStyleSheet("color: gray;")
+        data_group_layout.addWidget(self.file_count_label)
+        
+        data_group_widget.setLayout(data_group_layout)
+        top_layout.addWidget(data_group_widget, 1)
         
         self.analyze_btn = QPushButton(t("start_analysis"))
         self.analyze_btn.clicked.connect(self._start_analysis)
@@ -186,8 +190,7 @@ class DataCleaningPanel(QWidget):
         action_layout.addStretch()
         self.action_group.setLayout(action_layout)
         
-        main_layout.addWidget(self.data_group)
-        main_layout.addWidget(self.options_group)
+        main_layout.addLayout(top_layout)
         main_layout.addWidget(self.analyze_btn)
         main_layout.addWidget(self.progress_bar)
         main_layout.addWidget(self.results_group)
@@ -685,7 +688,6 @@ class DataCleaningPanel(QWidget):
                 self.preview_canvas.figure.canvas.draw()
     
     def refresh_text(self):
-        self.data_group.setTitle(t("data_source"))
         self.options_group.setTitle(t("detection_options"))
         self.results_group.setTitle(t("analysis_results"))
         self.preview_group.setTitle(t("spectrum_preview"))
