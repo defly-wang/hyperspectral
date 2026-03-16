@@ -133,9 +133,15 @@ translations: Dict[str, Dict[str, str]] = {
         
         # File Operations
         "delete_file": "删除文件",
+        "delete_selected": "批量删除选中项",
+        "move_to_temp": "批量移动到临时目录",
+        "select_target_folder": "选择目标文件夹",
+        "move_success": "成功移动 {count} 个文件到 {folder}",
         "open_file_location": "打开文件位置",
         "confirm_delete": "确认删除",
         "confirm_delete_msg": "确定要删除文件 {filename} 吗？此操作不可撤销。",
+        "confirm_batch_delete": "确认批量删除",
+        "confirm_batch_delete_msg": "确定要删除选中的 {count} 个文件吗？此操作不可撤销。",
         "error": "错误",
         "delete_failed": "删除失败",
         
@@ -294,9 +300,15 @@ translations: Dict[str, Dict[str, str]] = {
         
         # File Operations
         "delete_file": "Delete File",
+        "delete_selected": "Batch Delete Selected",
+        "move_to_temp": "Move to Folder",
+        "select_target_folder": "Select Target Folder",
+        "move_success": "Successfully moved {count} files to {folder}",
         "open_file_location": "Open File Location",
         "confirm_delete": "Confirm Delete",
         "confirm_delete_msg": "Are you sure you want to delete {filename}? This action cannot be undone.",
+        "confirm_batch_delete": "Confirm Batch Delete",
+        "confirm_batch_delete_msg": "Are you sure you want to delete {count} selected files? This action cannot be undone.",
         "error": "Error",
         "delete_failed": "Delete failed",
         

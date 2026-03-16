@@ -169,6 +169,16 @@ class DataCleaningPanel(QWidget):
         self.export_btn.setEnabled(False)
         action_layout.addWidget(self.export_btn)
         
+        self.batch_delete_btn = QPushButton(t("delete_selected"))
+        self.batch_delete_btn.clicked.connect(self._batch_delete)
+        self.batch_delete_btn.setEnabled(False)
+        action_layout.addWidget(self.batch_delete_btn)
+        
+        self.batch_move_btn = QPushButton(t("move_to_temp"))
+        self.batch_move_btn.clicked.connect(self._batch_move)
+        self.batch_move_btn.setEnabled(False)
+        action_layout.addWidget(self.batch_move_btn)
+        
         self.clear_btn = QPushButton(t("clear"))
         self.clear_btn.clicked.connect(self._clear_results)
         action_layout.addWidget(self.clear_btn)
@@ -399,7 +409,10 @@ class DataCleaningPanel(QWidget):
             
             self.progress_bar.setValue(100)
             self.analyze_btn.setEnabled(True)
-            self.export_btn.setEnabled(len(self.all_issues) > 0)
+            has_issues = len(self.all_issues) > 0
+            self.export_btn.setEnabled(has_issues)
+            self.batch_delete_btn.setEnabled(has_issues)
+            self.batch_move_btn.setEnabled(has_issues)
             
             self.cleaning_completed.emit({'issues': self.all_issues})
             
@@ -629,6 +642,8 @@ class DataCleaningPanel(QWidget):
         self.all_issues = []
         self.file_data = {}
         self.export_btn.setEnabled(False)
+        self.batch_delete_btn.setEnabled(False)
+        self.batch_move_btn.setEnabled(False)
         if hasattr(self, 'preview_ax'):
             self.preview_ax.clear()
             self.preview_canvas.figure.canvas.draw()
@@ -678,6 +693,8 @@ class DataCleaningPanel(QWidget):
         self.select_data_btn.setText(t("select_folder"))
         self.analyze_btn.setText(t("start_analysis"))
         self.export_btn.setText(t("export_report"))
+        self.batch_delete_btn.setText(t("delete_selected"))
+        self.batch_move_btn.setText(t("move_to_temp"))
         self.clear_btn.setText(t("clear"))
     
     def _show_context_menu(self, position):
@@ -735,6 +752,117 @@ class DataCleaningPanel(QWidget):
                         
             except Exception as e:
                 QMessageBox.critical(self, t("error"), f"{t('delete_failed')}: {str(e)}")
+    
+    def _batch_delete(self):
+        selected_rows = set()
+        for item in self.issues_table.selectedItems():
+            selected_rows.add(item.row())
+        
+        if not selected_rows:
+            return
+        
+        rows_to_delete = sorted(selected_rows, reverse=True)
+        count = len(rows_to_delete)
+        
+        reply = QMessageBox.question(
+            self,
+            t("confirm_batch_delete"),
+            t("confirm_batch_delete_msg").format(count=count),
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No
+        )
+        
+        if reply == QMessageBox.StandardButton.Yes:
+            deleted_count = 0
+            for row in rows_to_delete:
+                if row >= len(self.all_issues):
+                    continue
+                issue = self.all_issues[row]
+                full_path = issue.get('full_path', '')
+                
+                try:
+                    if os.path.exists(full_path):
+                        os.remove(full_path)
+                        deleted_count += 1
+                        
+                    if full_path in self.file_data:
+                        del self.file_data[full_path]
+                        
+                except Exception as e:
+                    self.result_summary.append(f"Failed to delete {issue.get('file', '')}: {str(e)}")
+            
+            for row in rows_to_delete:
+                if row < len(self.all_issues):
+                    self.all_issues.pop(row)
+            
+            self._refresh_issues_table()
+            self.result_summary.append(f"Deleted {deleted_count} files")
+    
+    def _batch_move(self):
+        selected_rows = set()
+        for item in self.issues_table.selectedItems():
+            selected_rows.add(item.row())
+        
+        if not selected_rows:
+            return
+        
+        target_folder = QFileDialog.getExistingDirectory(
+            self,
+            t("select_target_folder"),
+            ""
+        )
+        
+        if not target_folder:
+            return
+        
+        moved_count = 0
+        rows_to_remove = []
+        
+        for row in selected_rows:
+            if row >= len(self.all_issues):
+                continue
+            issue = self.all_issues[row]
+            full_path = issue.get('full_path', '')
+            filename = issue.get('file', '')
+            
+            if not full_path or not os.path.exists(full_path):
+                continue
+            
+            try:
+                import shutil
+                target_path = os.path.join(target_folder, filename)
+                shutil.move(full_path, target_path)
+                moved_count += 1
+                rows_to_remove.append(row)
+                
+                if full_path in self.file_data:
+                    del self.file_data[full_path]
+                    
+            except Exception as e:
+                self.result_summary.append(f"Failed to move {filename}: {str(e)}")
+        
+        for row in sorted(rows_to_remove, reverse=True):
+            if row < len(self.all_issues):
+                self.all_issues.pop(row)
+        
+        self._refresh_issues_table()
+        self.result_summary.append(t("move_success").format(count=moved_count, folder=target_folder))
+    
+    def _refresh_issues_table(self):
+        self.issues_table.setRowCount(len(self.all_issues))
+        for row, issue in enumerate(self.all_issues):
+            self.issues_table.setItem(row, 0, QTableWidgetItem(issue.get('file', '')))
+            self.issues_table.setItem(row, 1, QTableWidgetItem(issue.get('type', '')))
+            
+            severity = issue.get('severity', 'low')
+            severity_item = QTableWidgetItem(severity)
+            if severity == 'high':
+                severity_item.setBackground(Qt.GlobalColor.red)
+            elif severity == 'medium':
+                severity_item.setBackground(Qt.GlobalColor.yellow)
+            self.issues_table.setItem(row, 2, severity_item)
+            
+            self.issues_table.setItem(row, 3, QTableWidgetItem(issue.get('description', '')))
     
     def _open_file_location(self, filepath):
         if not filepath or not os.path.exists(filepath):
