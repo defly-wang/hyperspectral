@@ -21,7 +21,6 @@ class DataCleaningPanel(QWidget):
         self.loaded_files = []
         self.file_data = {}
         self.all_issues = []
-        self.checkbox_rows = set()
         
         self._init_ui()
     
@@ -127,13 +126,12 @@ class DataCleaningPanel(QWidget):
         results_layout = QVBoxLayout()
         
         self.issues_table = QTableWidget()
-        self.issues_table.setColumnCount(5)
-        self.issues_table.setHorizontalHeaderLabels(["", t("file_col"), t("type_col"), t("severity_col"), t("description_col")])
+        self.issues_table.setColumnCount(4)
+        self.issues_table.setHorizontalHeaderLabels([t("file_col"), t("type_col"), t("severity_col"), t("description_col")])
         self.issues_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
-        self.issues_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
-        self.issues_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Interactive)
-        self.issues_table.setColumnWidth(1, 200)
-        self.issues_table.horizontalHeader().setSectionResizeMode(4, QHeaderView.ResizeMode.Stretch)
+        self.issues_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Interactive)
+        self.issues_table.setColumnWidth(0, 200)
+        self.issues_table.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
         self.issues_table.itemClicked.connect(self._on_issue_clicked)
         self.issues_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.issues_table.customContextMenuRequested.connect(self._show_context_menu)
@@ -567,16 +565,9 @@ class DataCleaningPanel(QWidget):
         medium_count = sum(1 for i in self.all_issues if i['severity'] == 'medium')
         low_count = sum(1 for i in self.all_issues if i['severity'] == 'low')
         
-        self.checkbox_rows = set()
-        
         for row, issue in enumerate(self.all_issues):
-            checkbox = QCheckBox()
-            checkbox.setProperty("row", row)
-            checkbox.stateChanged.connect(lambda state, r=row: self._on_checkbox_changed(state, r))
-            self.issues_table.setCellWidget(row, 0, checkbox)
-            
-            self.issues_table.setItem(row, 1, QTableWidgetItem(issue['file']))
-            self.issues_table.setItem(row, 2, QTableWidgetItem(issue['type']))
+            self.issues_table.setItem(row, 0, QTableWidgetItem(issue['file']))
+            self.issues_table.setItem(row, 1, QTableWidgetItem(issue['type']))
             
             severity_item = QTableWidgetItem(issue['severity'])
             if issue['severity'] == 'high':
@@ -585,9 +576,9 @@ class DataCleaningPanel(QWidget):
                 severity_item.setBackground(Qt.GlobalColor.yellow)
             else:
                 severity_item.setBackground(Qt.GlobalColor.green)
-            self.issues_table.setItem(row, 3, severity_item)
+            self.issues_table.setItem(row, 2, severity_item)
             
-            self.issues_table.setItem(row, 4, QTableWidgetItem(issue['description']))
+            self.issues_table.setItem(row, 3, QTableWidgetItem(issue['description']))
         
         self.result_summary.append("\n=== Summary ===")
         self.result_summary.append(f"Total issues: {len(self.all_issues)}")
@@ -656,24 +647,12 @@ class DataCleaningPanel(QWidget):
         self.result_summary.clear()
         self.all_issues = []
         self.file_data = {}
-        self.checkbox_rows = set()
         self.export_btn.setEnabled(False)
         self.batch_delete_btn.setEnabled(False)
         self.batch_move_btn.setEnabled(False)
         if hasattr(self, 'preview_ax'):
             self.preview_ax.clear()
             self.preview_canvas.figure.canvas.draw()
-    
-    def _on_checkbox_changed(self, state, row):
-        if state == Qt.CheckState.Checked:
-            self.checkbox_rows.add(row)
-            self.issues_table.selectRow(row)
-        else:
-            self.checkbox_rows.discard(row)
-        
-        has_selection = len(self.checkbox_rows) > 0
-        self.batch_delete_btn.setEnabled(has_selection)
-        self.batch_move_btn.setEnabled(has_selection)
     
     def _on_issue_clicked(self, item):
         row = item.row()
@@ -780,7 +759,9 @@ class DataCleaningPanel(QWidget):
                 QMessageBox.critical(self, t("error"), f"{t('delete_failed')}: {str(e)}")
     
     def _batch_delete(self):
-        selected_rows = self.checkbox_rows.copy()
+        selected_rows = set()
+        for item in self.issues_table.selectedItems():
+            selected_rows.add(item.row())
         
         if not selected_rows:
             return
@@ -821,12 +802,11 @@ class DataCleaningPanel(QWidget):
             
             self._refresh_issues_table()
             self.result_summary.append(f"Deleted {deleted_count} files")
-            self.checkbox_rows.clear()
-            self.batch_delete_btn.setEnabled(False)
-            self.batch_move_btn.setEnabled(False)
     
     def _batch_move(self):
-        selected_rows = self.checkbox_rows.copy()
+        selected_rows = set()
+        for item in self.issues_table.selectedItems():
+            selected_rows.add(item.row())
         
         if not selected_rows:
             return
@@ -872,20 +852,12 @@ class DataCleaningPanel(QWidget):
         
         self._refresh_issues_table()
         self.result_summary.append(t("move_success").format(count=moved_count, folder=target_folder))
-        self.checkbox_rows.clear()
-        self.batch_delete_btn.setEnabled(False)
-        self.batch_move_btn.setEnabled(False)
     
     def _refresh_issues_table(self):
         self.issues_table.setRowCount(len(self.all_issues))
         for row, issue in enumerate(self.all_issues):
-            checkbox = QCheckBox()
-            checkbox.setProperty("row", row)
-            checkbox.stateChanged.connect(lambda state, r=row: self._on_checkbox_changed(state, r))
-            self.issues_table.setCellWidget(row, 0, checkbox)
-            
-            self.issues_table.setItem(row, 1, QTableWidgetItem(issue.get('file', '')))
-            self.issues_table.setItem(row, 2, QTableWidgetItem(issue.get('type', '')))
+            self.issues_table.setItem(row, 0, QTableWidgetItem(issue.get('file', '')))
+            self.issues_table.setItem(row, 1, QTableWidgetItem(issue.get('type', '')))
             
             severity = issue.get('severity', 'low')
             severity_item = QTableWidgetItem(severity)
@@ -893,7 +865,9 @@ class DataCleaningPanel(QWidget):
                 severity_item.setBackground(Qt.GlobalColor.red)
             elif severity == 'medium':
                 severity_item.setBackground(Qt.GlobalColor.yellow)
-            self.issues_table.setItem(row, 3, severity_item)
+            self.issues_table.setItem(row, 2, severity_item)
+            
+            self.issues_table.setItem(row, 3, QTableWidgetItem(issue.get('description', '')))
             
             self.issues_table.setItem(row, 4, QTableWidgetItem(issue.get('description', '')))
     
