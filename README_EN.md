@@ -19,7 +19,9 @@ A PyQt6-based desktop application for hyperspectral data processing and visualiz
 - **Invalid Data Detection**: NaN, Inf, negative values, out of range, length mismatch, low variance
 - **Anomaly Detection**: IQR and Z-Score methods with adjustable threshold
 - **Duplicate Detection**: Spectral similarity detection based on correlation coefficient
+- **Outlier Spectra Detection**: Detect anomalous spectra significantly different from overall trends
 - **File Format Check**: Format validation, header check, encoding detection
+- **Issue List Checkboxes**: Each row has a checkbox for batch selection
 - **Report Export**: Export cleaning reports
 - **Data Preview**: Click issue list to view spectrum curves
 

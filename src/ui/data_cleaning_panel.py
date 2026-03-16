@@ -92,7 +92,7 @@ class DataCleaningPanel(QWidget):
         self.options_group.setLayout(options_layout)
         
         top_layout = QHBoxLayout()
-        top_layout.addWidget(self.options_group, 3)
+        top_layout.addWidget(self.options_group, 1)
         
         data_group_widget = QWidget()
         data_group_layout = QVBoxLayout()
@@ -126,9 +126,13 @@ class DataCleaningPanel(QWidget):
         results_layout = QVBoxLayout()
         
         self.issues_table = QTableWidget()
-        self.issues_table.setColumnCount(4)
-        self.issues_table.setHorizontalHeaderLabels([t("file_col"), t("type_col"), t("severity_col"), t("description_col")])
-        self.issues_table.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
+        self.issues_table.setColumnCount(5)
+        self.issues_table.setHorizontalHeaderLabels(["", t("file_col"), t("type_col"), t("severity_col"), t("description_col")])
+        self.issues_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+        self.issues_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
+        self.issues_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Interactive)
+        self.issues_table.setColumnWidth(1, 200)
+        self.issues_table.horizontalHeader().setSectionResizeMode(4, QHeaderView.ResizeMode.Stretch)
         self.issues_table.itemClicked.connect(self._on_issue_clicked)
         self.issues_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.issues_table.customContextMenuRequested.connect(self._show_context_menu)
@@ -563,8 +567,12 @@ class DataCleaningPanel(QWidget):
         low_count = sum(1 for i in self.all_issues if i['severity'] == 'low')
         
         for row, issue in enumerate(self.all_issues):
-            self.issues_table.setItem(row, 0, QTableWidgetItem(issue['file']))
-            self.issues_table.setItem(row, 1, QTableWidgetItem(issue['type']))
+            checkbox = QCheckBox()
+            checkbox.setProperty("row", row)
+            self.issues_table.setCellWidget(row, 0, checkbox)
+            
+            self.issues_table.setItem(row, 1, QTableWidgetItem(issue['file']))
+            self.issues_table.setItem(row, 2, QTableWidgetItem(issue['type']))
             
             severity_item = QTableWidgetItem(issue['severity'])
             if issue['severity'] == 'high':
@@ -573,9 +581,9 @@ class DataCleaningPanel(QWidget):
                 severity_item.setBackground(Qt.GlobalColor.yellow)
             else:
                 severity_item.setBackground(Qt.GlobalColor.green)
-            self.issues_table.setItem(row, 2, severity_item)
+            self.issues_table.setItem(row, 3, severity_item)
             
-            self.issues_table.setItem(row, 3, QTableWidgetItem(issue['description']))
+            self.issues_table.setItem(row, 4, QTableWidgetItem(issue['description']))
         
         self.result_summary.append("\n=== Summary ===")
         self.result_summary.append(f"Total issues: {len(self.all_issues)}")
@@ -853,8 +861,12 @@ class DataCleaningPanel(QWidget):
     def _refresh_issues_table(self):
         self.issues_table.setRowCount(len(self.all_issues))
         for row, issue in enumerate(self.all_issues):
-            self.issues_table.setItem(row, 0, QTableWidgetItem(issue.get('file', '')))
-            self.issues_table.setItem(row, 1, QTableWidgetItem(issue.get('type', '')))
+            checkbox = QCheckBox()
+            checkbox.setProperty("row", row)
+            self.issues_table.setCellWidget(row, 0, checkbox)
+            
+            self.issues_table.setItem(row, 1, QTableWidgetItem(issue.get('file', '')))
+            self.issues_table.setItem(row, 2, QTableWidgetItem(issue.get('type', '')))
             
             severity = issue.get('severity', 'low')
             severity_item = QTableWidgetItem(severity)
@@ -862,9 +874,9 @@ class DataCleaningPanel(QWidget):
                 severity_item.setBackground(Qt.GlobalColor.red)
             elif severity == 'medium':
                 severity_item.setBackground(Qt.GlobalColor.yellow)
-            self.issues_table.setItem(row, 2, severity_item)
+            self.issues_table.setItem(row, 3, severity_item)
             
-            self.issues_table.setItem(row, 3, QTableWidgetItem(issue.get('description', '')))
+            self.issues_table.setItem(row, 4, QTableWidgetItem(issue.get('description', '')))
     
     def _open_file_location(self, filepath):
         if not filepath or not os.path.exists(filepath):
