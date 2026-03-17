@@ -4,8 +4,10 @@ Hyperspectral Data Processing System - Main Entry Point
 """
 
 import sys
+import os
 # PyQt6 GUI框架，用于创建桌面应用程序
 from PyQt6.QtWidgets import QApplication
+from PyQt6.QtGui import QIcon
 # 导入主窗口类
 from src.ui.main_window import MainWindow
 
@@ -20,6 +22,10 @@ def main():
     """
     # 创建Qt应用程序实例
     app = QApplication(sys.argv)
+    # 设置应用程序图标
+    icon_path = os.path.join(os.path.dirname(__file__), 'icon.ico')
+    if os.path.exists(icon_path):
+        app.setWindowIcon(QIcon(icon_path))
     # 设置Fusion样式（跨平台的现代风格）
     app.setStyle("Fusion")
     
