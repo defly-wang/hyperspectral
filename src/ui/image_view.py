@@ -83,7 +83,6 @@ class ImageViewWidget(QWidget):
             if n_points < 3:
                 ax.text(0.5, 0.5, 'Not enough points', 
                       ha='center', va='center', transform=ax.transAxes)
-                ax.set_title(name[:20])
                 ax.set_axis_off()
                 continue
             
@@ -95,10 +94,9 @@ class ImageViewWidget(QWidget):
             
             cmap = cmaps[idx % len(cmaps)]
             ax.imshow(reshaped, cmap=cmap, aspect='auto')
-            ax.set_title(name[:20], fontsize=8)
             ax.set_axis_off()
         
-        self.figure.subplots_adjust(wspace=0.02, hspace=0.02)
+        self.figure.subplots_adjust(wspace=0.1, hspace=0.1)
         self.canvas.draw()
 
     def clear(self):
