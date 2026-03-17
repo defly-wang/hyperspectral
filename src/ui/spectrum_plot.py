@@ -35,7 +35,8 @@ class SpectrumPlotWidget(QWidget):
         if show_original and original_intensities is not None:
             self.axes.plot(wavelengths, original_intensities, color='gray', 
                           linewidth=0.5, alpha=0.5, label='Original')
-            self.axes.legend()
+            legend = self.axes.legend()
+            legend.set_draggable(True)
         
         self.axes.set_title(title)
         self.canvas.draw()
@@ -50,7 +51,8 @@ class SpectrumPlotWidget(QWidget):
             self.axes.plot(wavelengths, intensities, color=colors[i], 
                           linewidth=1, label=name)
         
-        self.axes.legend()
+        legend = self.axes.legend()
+        legend.set_draggable(True)
         self.axes.set_title(title)
         self.canvas.draw()
 
