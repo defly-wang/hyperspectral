@@ -167,22 +167,23 @@ hyperspectral/
 └── src/
     ├── core/
     │   ├── isf_reader.py       # ISF file parser
-    │   ├── xlsx_reader.py       # XLSX file parser
-    │   ├── preprocessing.py     # Data preprocessing
-│   ├── model_trainer.py    # ML models
-│   ├── data_cleaner.py     # Data cleaning
-│   ├── data_split.py       # Data split
-│   └── i18n.py            # Internationalization
-│   └── ui/
-│       ├── main_window.py       # Main window
-│       ├── file_browser.py      # File browser
-│       ├── spectrum_plot.py     # Spectrum chart
-│       ├── image_view.py        # Pseudo-color image
-│       ├── preprocessing_panel.py  # Preprocessing panel
-│       ├── training_panel.py    # Training panel
-│       ├── recognition_panel.py # Recognition panel
-│       ├── data_cleaning_panel.py # Data cleaning panel
-│       └── data_split_panel.py  # Data split panel
+    │   ├── xlsx_reader.py      # XLSX file parser
+    │   ├── preprocessing.py    # Data preprocessing
+    │   ├── model_trainer.py    # ML models
+    │   ├── data_cleaner.py     # Data cleaning
+    │   ├── data_split.py       # Data split
+    │   └── i18n.py             # Internationalization
+    └── ui/
+        ├── main_window.py          # Main window
+        ├── preview_panel.py        # Preview panel
+        ├── file_browser.py         # File browser
+        ├── spectrum_plot.py       # Spectrum chart
+        ├── image_view.py          # Pseudo-color image
+        ├── preprocessing_panel.py # Preprocessing panel
+        ├── training_panel.py      # Training panel
+        ├── recognition_panel.py   # Recognition panel
+        ├── data_cleaning_panel.py # Data cleaning panel
+        └── data_split_panel.py    # Data split panel
 ```
 
 ## Keyboard Shortcuts

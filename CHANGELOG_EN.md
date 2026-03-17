@@ -12,12 +12,11 @@
   - Invalid data detection: NaN, Inf, negative values, out of range, length mismatch, low variance
   - Anomaly detection: IQR and Z-Score methods
   - Duplicate detection: Spectral similarity based on correlation coefficient
-  - **Outlier spectra detection**: Detect anomalous spectra significantly different from overall trends
+  - Outlier spectra detection: Detect anomalous spectra significantly different from overall trends
   - File format check: validation, header check, encoding detection
   - Invalid file check: read failure, empty data, no data after filter, insufficient points
   - Report export
   - Issue list click to preview spectrum
-  - **Issue list with checkboxes for batch operations**
 
 - **Data Split Module**
   - Two split modes: Train/Val/Test or Train/Test
@@ -46,8 +45,11 @@
 
 ### UI Improvements
 - Tabs: Preview / Data Cleaning / Data Split / Model Training / Recognition
-- New Model menu: Load model, Recognition
+- New Data menu: Data Cleaning, Data Split
+- New Model menu: Train Model, Load Model, Recognition
 - New Language menu: 中文/English
+- Refactored preview panel to separate PreviewPanel class
+- Fixed max width for left panel in preview to prevent layout expansion
 
 ## [1.0.0] - 2026-03-11
 

@@ -168,19 +168,20 @@ hyperspectral/
     │   ├── isf_reader.py       # ISF 文件解析
     │   ├── xlsx_reader.py      # XLSX 文件解析
     │   ├── preprocessing.py    # 数据预处理
-│   ├── model_trainer.py      # 机器学习模型
-│   ├── data_cleaner.py       # 数据清洗
-│   └── i18n.py                # 国际化
-│   └── ui/
-│       ├── main_window.py       # 主窗口
-│       ├── file_browser.py      # 文件浏览器
-│       ├── spectrum_plot.py     # 光谱曲线图
-│       ├── image_view.py        # 伪彩色图像
-│       ├── preprocessing_panel.py  # 预处理面板
-│       ├── training_panel.py    # 模型训练面板
-│       ├── recognition_panel.py # 识别面板
-│       ├── data_cleaning_panel.py # 数据清洗面板
-│       └── data_split_panel.py  # 数据集分割面板
+    │   ├── model_trainer.py    # 机器学习模型
+    │   ├── data_cleaner.py     # 数据清洗
+    │   └── i18n.py             # 国际化
+    └── ui/
+        ├── main_window.py          # 主窗口
+        ├── preview_panel.py        # 预览面板
+        ├── file_browser.py         # 文件浏览器
+        ├── spectrum_plot.py        # 光谱曲线图
+        ├── image_view.py           # 伪彩色图像
+        ├── preprocessing_panel.py  # 预处理面板
+        ├── training_panel.py       # 模型训练面板
+        ├── recognition_panel.py    # 识别面板
+        ├── data_cleaning_panel.py # 数据清洗面板
+        └── data_split_panel.py    # 数据集分割面板
 ```
 
 ## 快捷键
