@@ -10,6 +10,7 @@ import os
 import numpy as np
 from typing import List, Dict
 from ..core.i18n import t
+from .spectrum_plot import SpectrumPlotWidget
 
 
 class DataCleaningPanel(QWidget):
@@ -141,15 +142,8 @@ class DataCleaningPanel(QWidget):
         self.preview_group = QGroupBox(t("spectrum_preview"))
         preview_layout = QVBoxLayout()
         
-        try:
-            from matplotlib.figure import Figure
-            from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
-            self.preview_canvas = FigureCanvasQTAgg(Figure(figsize=(8, 6)))
-            preview_layout.addWidget(self.preview_canvas)
-            self.preview_ax = self.preview_canvas.figure.add_subplot(111)
-        except ImportError:
-            self.preview_canvas = None
-            preview_layout.addWidget(QLabel("Matplotlib not available"))
+        self.spectrum_plot = SpectrumPlotWidget()
+        preview_layout.addWidget(self.spectrum_plot)
         
         self.preview_group.setLayout(preview_layout)
         
@@ -630,20 +624,18 @@ class DataCleaningPanel(QWidget):
         self.export_btn.setEnabled(False)
         self.batch_delete_btn.setEnabled(False)
         self.batch_move_btn.setEnabled(False)
-        if hasattr(self, 'preview_ax'):
-            self.preview_ax.clear()
-            self.preview_canvas.figure.canvas.draw()
+        self.spectrum_plot.clear()
     
     def _on_selection_changed(self):
         selected_rows = set(item.row() for item in self.issues_table.selectedItems())
         
-        if not selected_rows or not hasattr(self, 'preview_ax'):
+        if not selected_rows:
+            self.spectrum_plot.clear()
             return
         
-        colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
+        spectra = []
         
-        self.preview_ax.clear()
-        legend_labels = []
+        colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
         
         for idx, row in enumerate(selected_rows):
             if row >= len(self.all_issues):
@@ -668,23 +660,16 @@ class DataCleaningPanel(QWidget):
                 
                 if len(wavelengths) > 0 and len(intensities) > 0:
                     color = colors[idx % len(colors)]
-                    self.preview_ax.plot(wavelengths, intensities, color=color, linewidth=1, alpha=0.8)
-                    legend_labels.append(filename)
+                    wavelengths_masked = wavelengths[wavelengths >= 400]
+                    if len(wavelengths_masked) > 0:
+                        min_idx = np.searchsorted(wavelengths, 400)
+                        intensities_masked = intensities[min_idx:]
+                        spectra.append((wavelengths_masked, intensities_masked, filename))
         
-        if legend_labels:
-            self.preview_ax.legend(legend_labels, loc='best', fontsize=8)
-            self.preview_ax.set_xlabel('Wavelength (nm)')
-            self.preview_ax.set_ylabel('Intensity')
-            self.preview_ax.set_title(f"Spectrum Preview ({len(legend_labels)} files)")
-            self.preview_ax.grid(True, alpha=0.3)
+        if spectra:
+            self.spectrum_plot.plot_multiple_spectra(spectra, title=f"Spectrum Preview ({len(spectra)} files)")
         else:
-            self.preview_ax.text(0.5, 0.5, 'No data available', 
-                                ha='center', va='center', fontsize=12,
-                                transform=self.preview_ax.transAxes)
-            self.preview_ax.set_title("Spectrum Preview")
-            self.preview_ax.axis('off')
-        
-        self.preview_canvas.figure.canvas.draw()
+            self.spectrum_plot.clear()
     
     def refresh_text(self):
         self.options_group.setTitle(t("detection_options"))
