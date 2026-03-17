@@ -38,7 +38,8 @@ class ImageViewWidget(QWidget):
 
     def show_fake_hsi_image(self, wavelengths: np.ndarray, intensities: np.ndarray, 
                            title: str = "Pseudo-color Composite"):
-        self.axes.clear()
+        self.figure.clear()
+        self.axes = self.figure.add_subplot(111)
         
         n_points = len(intensities)
         if n_points < 3:
