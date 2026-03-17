@@ -98,7 +98,7 @@ class ImageViewWidget(QWidget):
             ax.set_title(name[:20], fontsize=8)
             ax.set_axis_off()
         
-        self.figure.subplots_adjust(wspace=0.1, hspace=0.1)
+        self.figure.subplots_adjust(wspace=0.02, hspace=0.02)
         self.figure.tight_layout()
         self.canvas.draw()
 
