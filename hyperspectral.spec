@@ -7,6 +7,8 @@ datas_pyqt6, binaries_pyqt6, hiddenimports_pyqt6 = collect_all('PyQt6')
 datas_matplotlib, binaries_matplotlib, hiddenimports_matplotlib = collect_all('matplotlib')
 datas_scipy, binaries_scipy, hiddenimports_scipy = collect_all('scipy')
 
+datas = datas_pyqt6 + datas_matplotlib + datas_scipy + [('icon.ico', '.')]
+
 hiddenimports = hiddenimports_pyqt6 + hiddenimports_matplotlib + hiddenimports_scipy + [
     'matplotlib.backends.backend_qt5agg',
     'numpy', 'scipy', 'openpyxl', 'sklearn', 'joblib',
@@ -18,7 +20,7 @@ a = Analysis(
     ['main.py'],
     pathex=[],
     binaries=binaries_pyqt6 + binaries_matplotlib + binaries_scipy,
-    datas=datas_pyqt6 + datas_matplotlib + datas_scipy,
+    datas=datas,
     hiddenimports=hiddenimports,
     hookspath=[],
     hooksconfig={},
@@ -48,6 +50,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+    icon='icon.ico',
 )
 
 coll = COLLECT(
