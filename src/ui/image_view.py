@@ -71,8 +71,8 @@ class ImageViewWidget(QWidget):
             self.canvas.draw()
             return
         
-        cols = math.ceil(math.sqrt(n_images))
-        rows = math.ceil(n_images / cols)
+        cols = 1
+        rows = n_images
         
         cmaps = ['viridis', 'plasma', 'inferno', 'magma', 'cividis', 'twilight', 'turbo']
         
