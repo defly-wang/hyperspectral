@@ -115,6 +115,7 @@ class MainWindow(QMainWindow):
         preview_layout = QHBoxLayout(preview_widget)
         
         left_panel = QWidget()
+        left_panel.setMaximumWidth(350)
         left_layout = QVBoxLayout(left_panel)
         
         self.file_browser = FileBrowserWidget()
