@@ -99,7 +99,6 @@ class ImageViewWidget(QWidget):
             ax.set_axis_off()
         
         self.figure.subplots_adjust(wspace=0.02, hspace=0.02)
-        self.figure.tight_layout()
         self.canvas.draw()
 
     def clear(self):
