@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+### 2026-03-17
+
 ### New Features
 - **Multi-language Support**
   - Supports Simplified Chinese and English
