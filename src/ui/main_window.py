@@ -57,6 +57,17 @@ class MainWindow(QMainWindow):
         
         view_menu.addAction(reset_action)
         
+        data_menu = menubar.addMenu(t("data_menu"))
+        
+        cleaning_action = QAction(t("data_cleaning"), self)
+        cleaning_action.triggered.connect(self._show_cleaning_panel)
+        
+        split_action = QAction(t("data_split"), self)
+        split_action.triggered.connect(self._show_split_panel)
+        
+        data_menu.addAction(cleaning_action)
+        data_menu.addAction(split_action)
+        
         lang_menu = menubar.addMenu(t("language"))
         
         zh_action = QAction("中文", self)
@@ -277,11 +288,17 @@ class MainWindow(QMainWindow):
         if hasattr(self, 'loaded_data'):
             self.loaded_data = {}
 
-    def _show_training_panel(self):
+    def _show_cleaning_panel(self):
         self.tab_widget.setCurrentIndex(1)
 
-    def _show_recognition_panel(self):
+    def _show_split_panel(self):
         self.tab_widget.setCurrentIndex(2)
+
+    def _show_training_panel(self):
+        self.tab_widget.setCurrentIndex(3)
+
+    def _show_recognition_panel(self):
+        self.tab_widget.setCurrentIndex(4)
     
     def _load_model(self):
         from PyQt6.QtWidgets import QFileDialog
