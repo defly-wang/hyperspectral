@@ -97,7 +97,7 @@ class ImageViewWidget(QWidget):
             ax.imshow(reshaped, cmap=cmap, aspect='auto')
             ax.set_axis_off()
         
-        self.figure.subplots_adjust(wspace=0.1, hspace=0.1)
+        self.figure.subplots_adjust(wspace=0.02, hspace=0.02)
         self.canvas.draw()
 
     def clear(self):
