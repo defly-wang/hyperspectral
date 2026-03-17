@@ -50,6 +50,11 @@
 - New Language menu: 中文/English
 - Refactored preview panel to separate PreviewPanel class
 - Fixed max width for left panel in preview to prevent layout expansion
+- Draggable legend for spectrum plot
+- Spectrum curves support mouse click to select/deselect, selected curves highlighted in bold
+- Pseudo-color images support multi-select display, horizontal layout with one image per column
+- Data cleaning module spectrum preview uses SpectrumPlotWidget with shared curve selection
+- Application icon
 
 ## [1.0.0] - 2026-03-11
 

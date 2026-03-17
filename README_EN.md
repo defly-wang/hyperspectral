@@ -12,7 +12,9 @@ A PyQt6-based desktop application for hyperspectral data processing and visualiz
 - **Multi-format Support**: Supports `.isf` and `.xlsx/.xls` hyperspectral data files
 - **Spectrum Curve Display**: Visualize wavelength vs reflectance/transmittance
 - **Multi-file Viewing**: Single or multiple file selection, multiple curves in one chart
-- **Pseudo-color Image**: Convert spectral data to pseudo-color images
+- **Draggable Legend**: Legend can be dragged to any position
+- **Curve Selection**: Click curve to select/deselect, selected curves highlighted in bold
+- **Pseudo-color Image**: Convert spectral data to pseudo-color images, horizontal layout for multi-select
 - **File Sorting**: File list sorted by filename
 
 ### Data Cleaning
