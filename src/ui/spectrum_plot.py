@@ -62,35 +62,19 @@ class SpectrumPlotWidget(QWidget):
             self._highlight_line(line)
         
         self._update_legend()
-        self._dim_unselected_lines()
         self.canvas.draw()
 
     def _highlight_line(self, line):
         color = line.get_color()
+        self.original_colors[line] = {'color': color, 'linewidth': line.get_linewidth(), 'alpha': line.get_alpha()}
         line.set_linewidth(2.5)
         line.set_alpha(1.0)
-        self.original_colors[line] = {'color': color, 'linewidth': line.get_linewidth(), 'alpha': line.get_alpha()}
 
     def _restore_line_style(self, line):
         if line in self.original_colors:
             orig = self.original_colors[line]
-            line.set_linewidth(0.5)
-            line.set_alpha(0.3)
-        else:
-            line.set_linewidth(0.5)
-            line.set_alpha(0.3)
-
-    def _dim_unselected_lines(self):
-        for line in self.axes.get_lines():
-            if line not in self.selected_lines:
-                if line not in self.original_colors:
-                    self.original_colors[line] = {
-                        'color': line.get_color(),
-                        'linewidth': line.get_linewidth(),
-                        'alpha': line.get_alpha()
-                    }
-                line.set_linewidth(0.5)
-                line.set_alpha(0.3)
+            line.set_linewidth(orig['linewidth'])
+            line.set_alpha(orig['alpha'])
 
     def _update_legend(self):
         if self.legend is None:
@@ -102,8 +86,10 @@ class SpectrumPlotWidget(QWidget):
                 leg_line.set_linewidth(3)
                 leg_line.set_alpha(1.0)
             else:
-                leg_line.set_linewidth(0.5)
-                leg_line.set_alpha(0.3)
+                orig = self.original_colors.get(ax_line)
+                if orig:
+                    leg_line.set_linewidth(orig['linewidth'])
+                    leg_line.set_alpha(orig['alpha'])
 
     def plot_spectrum(self, wavelengths: np.ndarray, intensities: np.ndarray, 
                       title: str = "Spectrum", color: str = 'blue', show_original: bool = False,
