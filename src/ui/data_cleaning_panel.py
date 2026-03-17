@@ -302,39 +302,17 @@ class DataCleaningPanel(QWidget):
                     
                     if ext == '.isf':
                         try:
-                            with open(filepath, 'r', encoding='utf-8') as f:
-                                first_line = f.readline()
-                                if 'Wave[nm]' not in first_line and 'Refl/Tran' not in first_line:
+                            with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
+                                content = f.read()
+                                if '[Spectrum]' not in content:
                                     self.all_issues.append({
                                         'file': os.path.basename(filepath),
                                         'type': 'invalid_format',
                                         'severity': 'high',
-                                        'description': 'ISF文件格式错误，缺少必要的表头 Wave[nm] 或 Refl/Tran',
+                                        'description': 'ISF文件格式错误，缺少 [Spectrum] 数据区',
                                         'full_path': filepath
                                     })
                                     continue
-                        except UnicodeDecodeError:
-                            try:
-                                with open(filepath, 'r', encoding='gbk') as f:
-                                    first_line = f.readline()
-                                    if 'Wave[nm]' not in first_line and 'Refl/Tran' not in first_line:
-                                        self.all_issues.append({
-                                            'file': os.path.basename(filepath),
-                                            'type': 'invalid_format',
-                                            'severity': 'high',
-                                            'description': 'ISF文件编码错误或格式错误',
-                                            'full_path': filepath
-                                        })
-                                        continue
-                            except:
-                                self.all_issues.append({
-                                    'file': os.path.basename(filepath),
-                                    'type': 'invalid_format',
-                                    'severity': 'high',
-                                    'description': 'ISF文件读取失败，可能是编码问题',
-                                    'full_path': filepath
-                                })
-                                continue
                         except Exception as isf_err:
                             self.all_issues.append({
                                 'file': os.path.basename(filepath),

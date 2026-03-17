@@ -79,14 +79,14 @@ class DataCleaner:
                 indices=np.where(intensities < 0)[0].tolist()
             ))
         
-        if np.any(intensities > 200):
-            over_count = np.sum(intensities > 200)
+        if np.any(intensities > 100):
+            over_count = np.sum(intensities > 100)
             issues.append(DataIssue(
                 issue_type="overflow",
                 file_path=file_path,
-                description=f"存在 {over_count} 个超过200的值 (可能为异常高值)",
+                description=f"存在 {over_count} 个超过100的值 (可能为异常高值)",
                 severity="medium",
-                indices=np.where(intensities > 200)[0].tolist()
+                indices=np.where(intensities > 100)[0].tolist()
             ))
         
         valid_wl = (wavelengths >= self.min_wavelength) & (wavelengths <= self.max_wavelength)
