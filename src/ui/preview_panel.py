@@ -134,9 +134,11 @@ class PreviewPanel(QWidget):
             self.spectrum_plot.plot_multiple_spectra(spectra_to_plot, title=f"{len(spectra_to_plot)} Spectra")
         
         if spectra_to_plot:
-            wl = spectra_to_plot[0][0]
-            intensity = spectra_to_plot[0][1]
-            self.image_view.show_fake_hsi_image(wl, intensity)
+            if len(spectra_to_plot) == 1:
+                wl, intensity, name = spectra_to_plot[0]
+                self.image_view.show_fake_hsi_image(wl, intensity, title=name)
+            else:
+                self.image_view.show_multiple_images(spectra_to_plot)
     
     def refresh_text(self):
         self.preprocessing_panel.refresh_text()
