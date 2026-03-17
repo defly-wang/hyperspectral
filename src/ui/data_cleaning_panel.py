@@ -2,7 +2,8 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                              QPushButton, QGroupBox, QFileDialog, QTextEdit,
                              QListWidget, QCheckBox, QSpinBox, QDoubleSpinBox,
                              QTableWidget, QTableWidgetItem, QHeaderView,
-                             QProgressBar, QMessageBox, QComboBox, QSplitter, QMenu)
+                             QProgressBar, QMessageBox, QComboBox, QSplitter, QMenu,
+                             QAbstractItemView)
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QAction
 import os
@@ -132,7 +133,8 @@ class DataCleaningPanel(QWidget):
         self.issues_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Interactive)
         self.issues_table.setColumnWidth(0, 200)
         self.issues_table.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
-        self.issues_table.itemClicked.connect(self._on_issue_clicked)
+        self.issues_table.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
+        self.issues_table.itemSelectionChanged.connect(self._on_selection_changed)
         self.issues_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.issues_table.customContextMenuRequested.connect(self._show_context_menu)
         
@@ -654,9 +656,21 @@ class DataCleaningPanel(QWidget):
             self.preview_ax.clear()
             self.preview_canvas.figure.canvas.draw()
     
-    def _on_issue_clicked(self, item):
-        row = item.row()
-        if row < len(self.all_issues):
+    def _on_selection_changed(self):
+        selected_rows = set(item.row() for item in self.issues_table.selectedItems())
+        
+        if not selected_rows or not hasattr(self, 'preview_ax'):
+            return
+        
+        colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
+        
+        self.preview_ax.clear()
+        legend_labels = []
+        
+        for idx, row in enumerate(selected_rows):
+            if row >= len(self.all_issues):
+                continue
+                
             issue = self.all_issues[row]
             filename = issue.get('file', '')
             full_path = issue.get('full_path', '')
@@ -670,25 +684,29 @@ class DataCleaningPanel(QWidget):
                         data = d
                         break
             
-            if data is not None and hasattr(self, 'preview_ax'):
+            if data is not None:
                 wavelengths = data.get('wavelengths', [])
                 intensities = data.get('intensities', [])
                 
                 if len(wavelengths) > 0 and len(intensities) > 0:
-                    self.preview_ax.clear()
-                    self.preview_ax.plot(wavelengths, intensities, 'b-', linewidth=1)
-                    self.preview_ax.set_xlabel('Wavelength (nm)')
-                    self.preview_ax.set_ylabel('Intensity')
-                    self.preview_ax.set_title(f"{filename}")
-                    self.preview_ax.grid(True, alpha=0.3)
-                else:
-                    self.preview_ax.clear()
-                    self.preview_ax.text(0.5, 0.5, issue.get('description', 'No data available'), 
-                                        ha='center', va='center', fontsize=12,
-                                        transform=self.preview_ax.transAxes)
-                    self.preview_ax.set_title(f"{filename} - No Data")
-                    self.preview_ax.axis('off')
-                self.preview_canvas.figure.canvas.draw()
+                    color = colors[idx % len(colors)]
+                    self.preview_ax.plot(wavelengths, intensities, color=color, linewidth=1, alpha=0.8)
+                    legend_labels.append(filename)
+        
+        if legend_labels:
+            self.preview_ax.legend(legend_labels, loc='best', fontsize=8)
+            self.preview_ax.set_xlabel('Wavelength (nm)')
+            self.preview_ax.set_ylabel('Intensity')
+            self.preview_ax.set_title(f"Spectrum Preview ({len(legend_labels)} files)")
+            self.preview_ax.grid(True, alpha=0.3)
+        else:
+            self.preview_ax.text(0.5, 0.5, 'No data available', 
+                                ha='center', va='center', fontsize=12,
+                                transform=self.preview_ax.transAxes)
+            self.preview_ax.set_title("Spectrum Preview")
+            self.preview_ax.axis('off')
+        
+        self.preview_canvas.figure.canvas.draw()
     
     def refresh_text(self):
         self.options_group.setTitle(t("detection_options"))
