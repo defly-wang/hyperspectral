@@ -32,7 +32,7 @@ class FileBrowserWidget(QWidget):
         layout.addWidget(self.count_label)
         
         self.open_btn.clicked.connect(self._open_folder)
-        self.file_list.itemClicked.connect(self._on_item_clicked)
+        self.file_list.itemSelectionChanged.connect(self._on_selection_changed)
         
         self.current_folder = ""
         self.file_paths = {}
@@ -58,7 +58,7 @@ class FileBrowserWidget(QWidget):
         
         self.count_label.setText(f"{len(files)} {t('files')}")
 
-    def _on_item_clicked(self, item):
+    def _on_selection_changed(self):
         selected_files = self._get_selected_files()
         self.files_selected.emit(selected_files)
 
