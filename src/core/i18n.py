@@ -107,6 +107,9 @@ translations: Dict[str, Dict[str, str]] = {
         "select_files": "选择文件...",
         "start_recognition": "开始识别",
         "recognition_results": "识别结果",
+        "filename": "文件名",
+        "recognition_result": "识别结果",
+        "confidence": "置信度",
         
         # Messages
         "ready": "就绪",
@@ -275,6 +278,9 @@ translations: Dict[str, Dict[str, str]] = {
         "select_files": "Select Files...",
         "start_recognition": "Start Recognition",
         "recognition_results": "Recognition Results",
+        "filename": "Filename",
+        "recognition_result": "Recognition Result",
+        "confidence": "Confidence",
         
         # Messages
         "ready": "Ready",

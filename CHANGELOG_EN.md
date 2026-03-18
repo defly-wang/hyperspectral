@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+### 2026-03-18
+
+### New Features
+- **Preview Module Pseudo-color Improvements**
+  - Set subplot spacing to 0 for horizontal multi-image layout
+  - Hide subplot borders for "fusion" effect
+  - Click on image to display filename at top center
+
+- **Recognition Module Improvements**
+  - File list changed to table format (Filename, Recognition Result, Confidence)
+  - Recognition results automatically filled into table after completion
+
 ### 2026-03-17
 
 ### New Features

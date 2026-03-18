@@ -15,6 +15,8 @@ A PyQt6-based desktop application for hyperspectral data processing and visualiz
 - **Draggable Legend**: Legend can be dragged to any position
 - **Curve Selection**: Click curve to select/deselect, selected curves highlighted in bold
 - **Pseudo-color Image**: Convert spectral data to pseudo-color images, horizontal layout for multi-select
+  - Subplot spacing set to 0 with hidden borders for "fusion" effect
+  - Click on image to display filename at top center
 - **File Sorting**: File list sorted by filename
 
 ### Data Cleaning
@@ -50,6 +52,7 @@ A PyQt6-based desktop application for hyperspectral data processing and visualiz
 - Load trained models for prediction
 - Batch recognition of multiple files
 - Display recognition results with confidence
+- Table format display file list with filename, recognition result, and confidence
 
 ## Requirements
 

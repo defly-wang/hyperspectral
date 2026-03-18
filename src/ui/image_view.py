@@ -1,6 +1,7 @@
 from PyQt6.QtWidgets import QWidget, QVBoxLayout
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
+from matplotlib.backend_bases import MouseEvent
 import numpy as np
 import math
 
@@ -11,11 +12,13 @@ class ImageViewWidget(QWidget):
         self.figure = Figure(figsize=(6, 6))
         self.canvas = FigureCanvas(self.figure)
         self.axes = self.figure.add_subplot(111)
+        self.spectra_list = []
         
         layout = QVBoxLayout(self)
         layout.addWidget(self.canvas)
         
         self._setup_axes()
+        self.canvas.mpl_connect('button_press_event', self._on_canvas_click)
 
     def _setup_axes(self):
         self.axes.set_axis_off()
@@ -62,6 +65,7 @@ class ImageViewWidget(QWidget):
 
     def show_multiple_images(self, spectra_list: list, title: str = "Pseudo-color Composite"):
         self.figure.clear()
+        self.spectra_list = spectra_list
         
         n_images = len(spectra_list)
         if n_images == 0:
@@ -97,7 +101,10 @@ class ImageViewWidget(QWidget):
             ax.imshow(reshaped, cmap=cmap, aspect='auto')
             ax.set_axis_off()
         
-        self.figure.subplots_adjust(wspace=0.02, hspace=0.02)
+        self.figure.subplots_adjust(wspace=0, hspace=0)
+        for ax in self.figure.axes:
+            for spine in ax.spines.values():
+                spine.set_visible(False)
         self.canvas.draw()
 
     def clear(self):
@@ -105,3 +112,14 @@ class ImageViewWidget(QWidget):
         self.axes = self.figure.add_subplot(111)
         self._setup_axes()
         self.canvas.draw()
+
+    def _on_canvas_click(self, event: MouseEvent):
+        if event.inaxes is None or not self.spectra_list:
+            return
+        
+        for idx, ax in enumerate(self.figure.axes):
+            if ax == event.inaxes and idx < len(self.spectra_list):
+                _, _, name = self.spectra_list[idx]
+                self.figure.suptitle(name, fontsize=12, y=0.98)
+                self.canvas.draw()
+                break

@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
                              QPushButton, QGroupBox, QFileDialog, QTextEdit,
-                             QListWidget, QMessageBox)
+                             QTableWidget, QTableWidgetItem, QMessageBox)
 from PyQt6.QtCore import Qt, pyqtSignal
 import os
 import numpy as np
@@ -57,9 +57,15 @@ class RecognitionPanel(QWidget):
         file_btn_layout.addStretch()
         file_layout.addLayout(file_btn_layout)
         
-        self.file_list = QListWidget()
-        self.file_list.setMaximumHeight(150)
-        file_layout.addWidget(self.file_list)
+        self.file_table = QTableWidget()
+        self.file_table.setMaximumHeight(150)
+        self.file_table.setColumnCount(3)
+        self.file_table.setHorizontalHeaderLabels([t("filename"), t("recognition_result"), t("confidence")])
+        self.file_table.setColumnWidth(0, 250)
+        self.file_table.horizontalHeader().setStretchLastSection(True)
+        self.file_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self.file_table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        file_layout.addWidget(self.file_table)
         
         self.file_group.setLayout(file_layout)
         
@@ -116,16 +122,20 @@ class RecognitionPanel(QWidget):
         )
         
         if files:
-            self.file_list.clear()
+            self.file_table.setRowCount(0)
             for filepath in files:
-                self.file_list.addItem(os.path.basename(filepath))
+                row = self.file_table.rowCount()
+                self.file_table.insertRow(row)
+                self.file_table.setItem(row, 0, QTableWidgetItem(os.path.basename(filepath)))
+                self.file_table.setItem(row, 1, QTableWidgetItem(""))
+                self.file_table.setItem(row, 2, QTableWidgetItem(""))
             self.file_paths = files
             self.clear_files_btn.setEnabled(True)
             self.recognize_btn.setEnabled(True)
             self.result_text.append(f"Selected {len(files)} files for recognition\n")
     
     def _clear_files(self):
-        self.file_list.clear()
+        self.file_table.setRowCount(0)
         self.clear_files_btn.setEnabled(False)
         self.recognize_btn.setEnabled(False)
     
@@ -184,6 +194,16 @@ class RecognitionPanel(QWidget):
                 filename = result['file']
                 predicted = result['class']
                 confidence = result['confidence']
+                
+                for row in range(self.file_table.rowCount()):
+                    item = self.file_table.item(row, 0)
+                    if item and item.text() == filename:
+                        self.file_table.setItem(row, 1, QTableWidgetItem(predicted))
+                        if confidence is not None:
+                            self.file_table.setItem(row, 2, QTableWidgetItem(f"{confidence*100:.2f}%"))
+                        else:
+                            self.file_table.setItem(row, 2, QTableWidgetItem("-"))
+                        break
                 
                 if confidence is not None:
                     self.result_text.append(
