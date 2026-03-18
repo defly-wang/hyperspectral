@@ -1,3 +1,9 @@
+"""
+国际化模块 - 支持中英文界面
+Internationalization Module
+提供多语言支持功能，包括简体中文和英文
+"""
+
 import os
 from typing import Dict
 

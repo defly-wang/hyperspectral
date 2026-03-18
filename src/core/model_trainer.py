@@ -1,3 +1,10 @@
+"""
+光谱分类模型训练模块
+Spectrum Classification Model Training Module
+提供模型训练、预测、保存和加载功能
+支持Random Forest、SVM、Gradient Boosting三种模型
+"""
+
 import os
 import numpy as np
 from typing import List, Tuple, Optional, Callable
@@ -35,7 +42,22 @@ def _load_single_file(args: Tuple[str, float, int]) -> Tuple[np.ndarray, str]:
 
 
 class SpectrumClassifier:
+    """
+    光谱分类器
+    
+    用于训练和预测光谱数据所属类别
+    支持Random Forest、SVM、Gradient Boosting三种模型
+    特征提取：将光谱数据按波长转换为固定长度的特征向量
+    """
+    
     def __init__(self, min_wavelength: int = 400, max_wavelength: int = 2500):
+        """
+        初始化分类器
+        
+        Args:
+            min_wavelength: 最小波长（默认400nm）
+            max_wavelength: 最大波长（默认2500nm）
+        """
         self.model = None
         self.scaler = None
         self.label_encoder = None
@@ -53,6 +75,22 @@ class SpectrumClassifier:
                                  progress_callback: Optional[Callable[[int], None]] = None) -> Tuple[np.ndarray, np.ndarray, 
                                                                        Optional[np.ndarray], Optional[np.ndarray],
                                                                        Optional[np.ndarray], Optional[np.ndarray]]:
+        """
+        从目录加载训练数据
+        
+        支持两种数据组织形式：
+        1. 未分割：data_dir/category/file.xlsx
+        2. 已分割：data_dir/train/category/file.xlsx, data_dir/val/category, data_dir/test/category
+        
+        Args:
+            data_dir: 数据目录路径
+            min_wavelength: 最小波长
+            use_split_dirs: 是否使用已分割的目录结构
+            progress_callback: 进度回调函数
+            
+        Returns:
+            (X, y, X_val, y_val, X_test, y_test) 元组
+        """
         X = []
         y = []
         X_val = None
@@ -181,12 +219,35 @@ class SpectrumClassifier:
         return X_train, y_train, X_val, y_val, X_test, y_test
     
     def detect_split_dirs(self, data_dir: str) -> bool:
+        """
+        检测是否为已分割的目录结构
+        
+        检查data_dir下是否存在train子目录
+        
+        Args:
+            data_dir: 数据目录路径
+            
+        Returns:
+            True表示是已分割结构
+        """
         if not os.path.isdir(data_dir):
             return False
         subdirs = set(os.listdir(data_dir))
         return 'train' in subdirs and len(subdirs) >= 2
     
     def _extract_features(self, wavelengths: np.ndarray, intensities: np.ndarray) -> np.ndarray:
+        """
+        提取特征向量
+        
+        将光谱数据转换为固定长度的特征向量
+        
+        Args:
+            wavelengths: 波长数组
+            intensities: 强度数组
+            
+        Returns:
+            特征向量
+        """
         features = np.zeros(self.feature_length, dtype=np.float32)
         
         for wl, intensity in zip(wavelengths, intensities):
@@ -200,6 +261,26 @@ class SpectrumClassifier:
               test_size: float = 0.2, random_state: int = 42,
               X_val: Optional[np.ndarray] = None, y_val: Optional[np.ndarray] = None,
               X_test: Optional[np.ndarray] = None, y_test: Optional[np.ndarray] = None) -> dict:
+        """
+        训练模型
+        
+        支持Random Forest、SVM、Gradient Boosting三种模型
+        自动进行数据标准化、标签编码和训练/验证/测试集分割
+        
+        Args:
+            X: 特征矩阵
+            y: 标签数组
+            model_type: 模型类型，"rf"、"svm"或"gb"
+            test_size: 测试集比例（当未提供测试集时）
+            random_state: 随机种子
+            X_val: 验证集特征（可选）
+            y_val: 验证集标签（可选）
+            X_test: 测试集特征（可选）
+            y_test: 测试集标签（可选）
+            
+        Returns:
+            包含准确率、分类报告等训练结果的字典
+        """
         self.label_encoder = LabelEncoder()
         
         if X_val is not None and y_val is not None and X_test is not None and y_test is not None:
@@ -286,6 +367,15 @@ class SpectrumClassifier:
         return result
     
     def predict(self, X: np.ndarray) -> np.ndarray:
+        """
+        预测类别
+        
+        Args:
+            X: 特征矩阵
+            
+        Returns:
+            预测的类别标签（编码后）
+        """
         if not self.is_trained:
             raise ValueError("Model not trained yet")
         
@@ -293,6 +383,15 @@ class SpectrumClassifier:
         return self.model.predict(X_scaled)
     
     def predict_proba(self, X: np.ndarray) -> np.ndarray:
+        """
+        预测类别概率
+        
+        Args:
+            X: 特征矩阵
+            
+        Returns:
+            各类别的概率矩阵
+        """
         if not self.is_trained:
             raise ValueError("Model not trained yet")
         
@@ -302,11 +401,25 @@ class SpectrumClassifier:
         return None
     
     def get_class_names(self) -> List[str]:
+        """
+        获取类别名称列表
+        
+        Returns:
+            类别名称列表
+        """
         if self.label_encoder is None:
             return []
         return self.label_encoder.classes_.tolist()
     
     def save(self, filepath: str):
+        """
+        保存模型到文件
+        
+        保存模型、标准化器、标签编码器等
+        
+        Args:
+            filepath: 保存路径
+        """
         if not self.is_trained:
             raise ValueError("Model not trained yet")
         
@@ -319,6 +432,12 @@ class SpectrumClassifier:
         print(f"Model saved to {filepath}")
     
     def load(self, filepath: str):
+        """
+        从文件加载模型
+        
+        Args:
+            filepath: 模型文件路径
+        """
         data = joblib.load(filepath)
         self.model = data['model']
         self.scaler = data['scaler']

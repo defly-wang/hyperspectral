@@ -1,3 +1,9 @@
+"""
+数据清洗模块 - 用于检测和处理光谱数据中的问题
+Data Cleaning Module
+提供数据质量检测、异常检测、重复检测等功能
+"""
+
 import numpy as np
 from typing import List, Tuple, Dict, Optional
 from dataclasses import dataclass
@@ -6,20 +12,64 @@ import os
 
 @dataclass
 class DataIssue:
-    issue_type: str
-    file_path: str
-    description: str
-    severity: str
-    indices: Optional[List[int]] = None
+    """
+    数据问题数据结构
+    
+    用于表示检测到的数据问题，包含问题类型、文件路径、描述和严重程度
+    """
+    issue_type: str      # 问题类型
+    file_path: str       # 文件路径
+    description: str     # 问题描述
+    severity: str        # 严重程度: high/medium/low
+    indices: Optional[List[int]] = None  # 相关数据点索引
 
 
 class DataCleaner:
+    """
+    光谱数据清洗器
+    
+    提供多种数据质量检测功能：
+    - 无效数据检测（空值、无穷值、负值等）
+    - 异常点检测（IQR、Z-Score方法）
+    - 重复文件检测（基于相关系数）
+    - 离群光谱检测（与整体趋势比较）
+    - 趋势异常检测
+    """
+    
     def __init__(self, min_wavelength: float = 400, max_wavelength: float = 2500):
+        """
+        初始化数据清洗器
+        
+        Args:
+            min_wavelength: 最小有效波长（默认400nm）
+            max_wavelength: 最大有效波长（默认2500nm）
+        """
         self.min_wavelength = min_wavelength
         self.max_wavelength = max_wavelength
     
     def check_invalid_data(self, wavelengths: np.ndarray, intensities: np.ndarray, 
                           file_path: str) -> List[DataIssue]:
+        """
+        检测无效数据
+        
+        检查以下问题：
+        - 空数据
+        - 波长与强度长度不匹配
+        - NaN值
+        - 无穷值
+        - 负值（反射率应为正）
+        - 超过100的值（异常高值）
+        - 超出有效波长范围的数据
+        - 数据方差过小
+        
+        Args:
+            wavelengths: 波长数组
+            intensities: 强度数组
+            file_path: 文件路径
+            
+        Returns:
+            DataIssue列表
+        """
         issues = []
         
         if len(wavelengths) == 0:
@@ -111,6 +161,19 @@ class DataCleaner:
     
     def detect_anomalies(self, intensities: np.ndarray, method: str = "iqr", 
                         threshold: float = 3.0) -> Tuple[np.ndarray, List[int]]:
+        """
+        检测异常数据点
+        
+        使用IQR或Z-Score方法检测光谱中的异常点
+        
+        Args:
+            intensities: 强度数组
+            method: 检测方法，"iqr"或"zscore"
+            threshold: 阈值，IQR方法中为倍数，Z-Score中为标准差倍数
+            
+        Returns:
+            (异常点布尔数组, 异常点索引列表)
+        """
         if method == "iqr":
             q1 = np.percentile(intensities, 25)
             q3 = np.percentile(intensities, 75)
@@ -134,6 +197,19 @@ class DataCleaner:
     def detect_duplicates(self, spectra: List[Tuple[np.ndarray, np.ndarray]], 
                          file_paths: List[str], 
                          similarity_threshold: float = 0.99) -> List[DataIssue]:
+        """
+        检测重复文件
+        
+        基于光谱相关系数检测高度相似的文件
+        
+        Args:
+            spectra: 光谱列表，每项为(波长, 强度)元组
+            file_paths: 文件路径列表
+            similarity_threshold: 相似度阈值，默认0.99
+            
+        Returns:
+            DataIssue列表
+        """
         issues = []
         
         n = len(spectra)
@@ -176,6 +252,21 @@ class DataCleaner:
     def clean_data(self, wavelengths: np.ndarray, intensities: np.ndarray,
                    remove_nan: bool = True, remove_inf: bool = True,
                    interpolate: bool = False) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        清洗数据
+        
+        移除无效数据点，可选择插值填补
+        
+        Args:
+            wavelengths: 波长数组
+            intensities: 强度数组
+            remove_nan: 是否移除NaN值
+            remove_inf: 是否移除无穷值
+            interpolate: 是否插值填补缺失值
+            
+        Returns:
+            (清洗后的波长, 清洗后的强度)
+        """
         mask = np.ones(len(intensities), dtype=bool)
         
         if remove_nan:
@@ -200,6 +291,16 @@ class DataCleaner:
         return clean_wl, clean_int
     
     def get_data_statistics(self, wavelengths: np.ndarray, intensities: np.ndarray) -> Dict:
+        """
+        获取数据统计信息
+        
+        Args:
+            wavelengths: 波长数组
+            intensities: 强度数组
+            
+        Returns:
+            包含各项统计指标的字典
+        """
         return {
             "total_points": len(intensities),
             "valid_points": np.sum(~np.isnan(intensities) & ~np.isinf(intensities)),
@@ -217,6 +318,19 @@ class DataCleaner:
     def detect_outlier_spectra(self, spectra: List[Tuple[np.ndarray, np.ndarray]],
                               file_paths: List[str],
                               similarity_threshold: float = 0.85) -> List[DataIssue]:
+        """
+        检测离群光谱
+        
+        检测与整体平均光谱趋势显著不同的光谱，可能表示错误分类或异常样本
+        
+        Args:
+            spectra: 光谱列表
+            file_paths: 文件路径列表
+            similarity_threshold: 相似度阈值，默认0.85
+            
+        Returns:
+            DataIssue列表
+        """
         issues = []
         
         if len(spectra) < 3:
@@ -262,6 +376,18 @@ class DataCleaner:
 
     def calculate_spectrum_similarity(self, intensities: np.ndarray, 
                                      reference: np.ndarray) -> Dict:
+        """
+        计算光谱相似度
+        
+        计算待测光谱与参考光谱的多种相似度指标
+        
+        Args:
+            intensities: 待测光谱强度数组
+            reference: 参考光谱强度数组
+            
+        Returns:
+            包含相关系数、欧氏距离、余弦相似度的字典
+        """
         if len(intensities) != len(reference):
             return {"correlation": 0, "euclidean_dist": float('inf'), "cosine_sim": 0}
         
@@ -284,6 +410,21 @@ class DataCleaner:
     def detect_trend_anomalies(self, wavelengths: np.ndarray, intensities: np.ndarray,
                                reference_wl: np.ndarray, reference_int: np.ndarray,
                                threshold: float = 0.7) -> Tuple[bool, Dict]:
+        """
+        检测趋势异常
+        
+        比较光谱与参考光谱的趋势相似度
+        
+        Args:
+            wavelengths: 波长数组
+            intensities: 强度数组
+            reference_wl: 参考波长数组
+            reference_int: 参考强度数组
+            threshold: 相似度阈值
+            
+        Returns:
+            (是否异常, 详细信息字典)
+        """
         if len(wavelengths) < 5 or len(reference_wl) < 5:
             return False, {}
         
@@ -321,6 +462,17 @@ class DataCleaner:
         }
 
     def analyze_spectrum_trend(self, intensities: np.ndarray) -> Dict:
+        """
+        分析光谱趋势
+        
+        使用线性回归分析光谱的整体趋势方向和强度
+        
+        Args:
+            intensities: 强度数组
+            
+        Returns:
+            包含斜率、趋势方向、趋势强度、变化量、波动性的字典
+        """
         if len(intensities) < 3:
             return {}
         
@@ -351,6 +503,19 @@ class DataCleaner:
     def detect_anomalous_trend(self, spectra: List[Tuple[np.ndarray, np.ndarray]],
                                file_paths: List[str],
                                trend_threshold: float = 0.5) -> List[DataIssue]:
+        """
+        检测趋势异常光谱
+        
+        检测光谱趋势与整体平均值差异较大的样本
+        
+        Args:
+            spectra: 光谱列表
+            file_paths: 文件路径列表
+            trend_threshold: 趋势差异阈值
+            
+        Returns:
+            DataIssue列表
+        """
         issues = []
         
         if len(spectra) < 3:
