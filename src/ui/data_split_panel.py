@@ -1,3 +1,22 @@
+"""
+数据分割面板
+
+提供将数据按比例分割为训练集、验证集、测试集的功能，支持自定义比例和随机种子
+
+主要功能:
+    - 选择源数据目录（包含分类子目录）
+    - 选择输出目录
+    - 设置分割比例（训练/验证/测试）
+    - 设置随机种子保证可复现性
+    - 选择分割方式（训练/验证/测试 或 训练/测试）
+
+信号:
+    split_completed: 分割完成时发射，参数为分割结果字典
+
+用法:
+    panel = DataSplitPanel()
+"""
+
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
                              QPushButton, QGroupBox, QFileDialog, QTextEdit,
                              QListWidget, QComboBox, QDoubleSpinBox, QSpinBox, QCheckBox, 
@@ -11,12 +30,32 @@ from ..core.i18n import t
 
 
 class SplitWorker(QThread):
+    """
+    数据分割工作线程
+    
+    在后台线程执行数据分割任务，避免阻塞UI
+    """
+    
     progress = pyqtSignal(int, str)
     finished = pyqtSignal(dict)
     error = pyqtSignal(str)
     
     def __init__(self, source_dir, output_dir, split_type, train_ratio, val_ratio, 
                  test_ratio, shuffle, seed, clear_output=False):
+        """
+        初始化分割工作线程
+        
+        Args:
+            source_dir: 源数据目录
+            output_dir: 输出目录
+            split_type: 分割类型（train_val_test 或 train_test）
+            train_ratio: 训练集比例
+            val_ratio: 验证集比例
+            test_ratio: 测试集比例
+            shuffle: 是否打乱数据
+            seed: 随机种子
+            clear_output: 是否清空输出目录
+        """
         super().__init__()
         self.source_dir = source_dir
         self.output_dir = output_dir
@@ -29,6 +68,11 @@ class SplitWorker(QThread):
         self.clear_output = clear_output
     
     def run(self):
+        """
+        执行分割任务
+        
+        遍历源目录中每个分类文件夹，按比例分配文件到训练/验证/测试目录
+        """
         try:
             if self.clear_output:
                 self._clear_output()
@@ -68,12 +112,20 @@ class SplitWorker(QThread):
             self.error.emit(str(e))
     
     def _clear_output(self):
+        """清空输出目录"""
         for subdir in ['train', 'val', 'test']:
             path = os.path.join(self.output_dir, subdir)
             if os.path.exists(path):
                 shutil.rmtree(path)
     
     def _split_category_three_way(self, category, results):
+        """
+        三路分割（训练/验证/测试）
+        
+        Args:
+            category: 分类名称
+            results: 结果字典
+        """
         category_dir = os.path.join(self.source_dir, category)
         files = [f for f in os.listdir(category_dir) 
                 if f.lower().endswith(('.isf', '.xlsx', '.xls'))]
@@ -102,6 +154,13 @@ class SplitWorker(QThread):
         self._create_category_folders(category, train_files, val_files, test_files)
     
     def _split_category_two_way(self, category, results):
+        """
+        两路分割（训练/测试）
+        
+        Args:
+            category: 分类名称
+            results: 结果字典
+        """
         category_dir = os.path.join(self.source_dir, category)
         files = [f for f in os.listdir(category_dir) 
                 if f.lower().endswith(('.isf', '.xlsx', '.xls'))]
@@ -126,6 +185,15 @@ class SplitWorker(QThread):
         self._create_category_folders_two(category, train_files, test_files)
     
     def _create_category_folders(self, category, train_files, val_files, test_files):
+        """
+        创建三类分割文件夹并复制文件
+        
+        Args:
+            category: 分类名称
+            train_files: 训练文件列表
+            val_files: 验证文件列表
+            test_files: 测试文件列表
+        """
         train_dir = os.path.join(self.output_dir, "train", category)
         val_dir = os.path.join(self.output_dir, "val", category)
         test_dir = os.path.join(self.output_dir, "test", category)
@@ -146,6 +214,14 @@ class SplitWorker(QThread):
             shutil.copy2(os.path.join(source_dir, f), os.path.join(test_dir, f))
     
     def _create_category_folders_two(self, category, train_files, test_files):
+        """
+        创建两类分割文件夹并复制文件
+        
+        Args:
+            category: 分类名称
+            train_files: 训练文件列表
+            test_files: 测试文件列表
+        """
         train_dir = os.path.join(self.output_dir, "train", category)
         test_dir = os.path.join(self.output_dir, "test", category)
         
@@ -162,9 +238,21 @@ class SplitWorker(QThread):
 
 
 class DataSplitPanel(QWidget):
+    """
+    数据分割面板widget
+    
+    提供数据分割功能界面
+    """
+    
     split_completed = pyqtSignal(dict)
     
     def __init__(self, parent=None):
+        """
+        初始化数据分割面板
+        
+        Args:
+            parent: 父widget
+        """
         super().__init__(parent)
         
         self.source_data_dir = ""
@@ -173,8 +261,10 @@ class DataSplitPanel(QWidget):
         self._init_ui()
     
     def _init_ui(self):
+        """构建UI布局"""
         main_layout = QVBoxLayout(self)
         
+        # 源目录选择
         source_group = QGroupBox(t("data_source"))
         source_layout = QVBoxLayout()
         
@@ -191,6 +281,7 @@ class DataSplitPanel(QWidget):
         
         source_group.setLayout(source_layout)
         
+        # 输出目录选择
         output_group = QGroupBox(t("output_directory"))
         output_layout = QVBoxLayout()
         
@@ -207,6 +298,7 @@ class DataSplitPanel(QWidget):
         
         output_group.setLayout(output_layout)
         
+        # 分割设置
         settings_group = QGroupBox(t("split_settings"))
         settings_layout = QVBoxLayout()
         
@@ -269,6 +361,7 @@ class DataSplitPanel(QWidget):
         
         settings_group.setLayout(settings_layout)
         
+        # 分割按钮和进度条
         self.split_btn = QPushButton(t("start_split"))
         self.split_btn.clicked.connect(self._start_split)
         self.split_btn.setEnabled(False)
@@ -278,6 +371,7 @@ class DataSplitPanel(QWidget):
         self.progress_label = QLabel()
         self.progress_label.setVisible(False)
         
+        # 结果显示
         result_group = QGroupBox(t("split_results"))
         result_layout = QVBoxLayout()
         
@@ -296,6 +390,9 @@ class DataSplitPanel(QWidget):
         main_layout.addWidget(result_group, 1)
     
     def _select_source_folder(self):
+        """
+        选择源数据目录
+        """
         folder = QFileDialog.getExistingDirectory(
             self, t("select_source_folder"), 
             os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
@@ -307,6 +404,9 @@ class DataSplitPanel(QWidget):
             self._check_ready()
     
     def _select_output_folder(self):
+        """
+        选择输出目录
+        """
         folder = QFileDialog.getExistingDirectory(
             self, t("select_output_folder"), 
             os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
@@ -336,11 +436,17 @@ class DataSplitPanel(QWidget):
             self._check_ready()
     
     def _check_ready(self):
+        """
+        检查是否准备好开始分割
+        """
         self.split_btn.setEnabled(
             bool(self.source_data_dir and self.output_dir)
         )
     
     def _start_split(self):
+        """
+        开始数据分割
+        """
         if not self.source_data_dir or not self.output_dir:
             return
         
@@ -377,12 +483,25 @@ class DataSplitPanel(QWidget):
         self.worker.error.connect(self._on_error)
         self.worker.start()
     
-    def _on_progress(self, value, category):
+    def _on_progress(self, value: int, category: str):
+        """
+        更新进度
+        
+        Args:
+            value: 进度值(0-100)
+            category: 当前处理的分类名称
+        """
         self.progress_bar.setValue(value)
         if category:
             self.result_text.append(f"Processing: {category}...")
     
-    def _on_finished(self, results):
+    def _on_finished(self, results: dict):
+        """
+        分割完成处理
+        
+        Args:
+            results: 分割结果字典
+        """
         self.progress_bar.setVisible(False)
         self.progress_label.setVisible(False)
         self.split_btn.setEnabled(True)
@@ -407,7 +526,13 @@ class DataSplitPanel(QWidget):
         
         self.split_completed.emit(results)
     
-    def _on_error(self, error_msg):
+    def _on_error(self, error_msg: str):
+        """
+        错误处理
+        
+        Args:
+            error_msg: 错误信息
+        """
         self.progress_bar.setVisible(False)
         self.progress_label.setVisible(False)
         self.split_btn.setEnabled(True)
@@ -418,4 +543,5 @@ class DataSplitPanel(QWidget):
         traceback.print_exc()
     
     def refresh_text(self):
+        """刷新界面文本"""
         pass

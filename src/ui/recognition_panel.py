@@ -1,3 +1,22 @@
+"""
+识别面板
+
+提供模型加载、文件选择、光谱识别功能，支持批量识别并显示结果
+
+主要功能:
+    - 加载预训练模型(.pkl文件)
+    - 选择待识别文件(.isf, .xlsx, .xls)
+    - 批量识别光谱并显示分类结果和置信度
+    - 显示识别结果摘要
+
+信号:
+    recognition_completed: 识别完成时发射，参数为识别结果字典
+
+用法:
+    panel = RecognitionPanel()
+    panel.load_model_from_path("model.pkl")
+"""
+
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
                              QPushButton, QGroupBox, QFileDialog, QTextEdit,
                              QTableWidget, QTableWidgetItem, QMessageBox)
@@ -8,17 +27,31 @@ from ..core.i18n import t
 
 
 class RecognitionPanel(QWidget):
+    """
+    识别面板widget
+    
+    提供光谱分类识别功能界面
+    """
+    
     recognition_completed = pyqtSignal(dict)
     
     def __init__(self, parent=None):
+        """
+        初始化识别面板
+        
+        Args:
+            parent: 父widget
+        """
         super().__init__(parent)
         
         self.classifier = None
         self._init_ui()
     
     def _init_ui(self):
+        """构建UI布局"""
         main_layout = QVBoxLayout(self)
         
+        # 模型选择组
         self.model_group = QGroupBox(t("model"))
         model_layout = QVBoxLayout()
         
@@ -40,6 +73,7 @@ class RecognitionPanel(QWidget):
         
         self.model_group.setLayout(model_layout)
         
+        # 文件选择组
         self.file_group = QGroupBox(t("recognition_files"))
         file_layout = QVBoxLayout()
         
@@ -69,10 +103,12 @@ class RecognitionPanel(QWidget):
         
         self.file_group.setLayout(file_layout)
         
+        # 识别按钮
         self.recognize_btn = QPushButton(t("start_recognition"))
         self.recognize_btn.clicked.connect(self._start_recognition)
         self.recognize_btn.setEnabled(False)
         
+        # 结果显示组
         self.result_group = QGroupBox(t("recognition_results"))
         result_layout = QVBoxLayout()
         
@@ -89,6 +125,11 @@ class RecognitionPanel(QWidget):
         main_layout.addStretch()
     
     def _load_model(self):
+        """
+        加载模型文件
+        
+        弹出文件对话框选择.pkl模型文件，加载并显示模型信息
+        """
         filepath, _ = QFileDialog.getOpenFileName(
             self, "Select Model File", "", 
             "Pickle Files (*.pkl)"
@@ -116,6 +157,11 @@ class RecognitionPanel(QWidget):
                 QMessageBox.critical(self, "Error", f"Failed to load model:\n{str(e)}")
     
     def _select_files(self):
+        """
+        选择待识别文件
+        
+        弹出文件对话框选择光谱文件(.isf, .xlsx, .xls)
+        """
         files, _ = QFileDialog.getOpenFileNames(
             self, "Select Files to Recognize", "",
             "Spectrum Files (*.isf *.xlsx *.xls);;All Files (*)"
@@ -135,11 +181,18 @@ class RecognitionPanel(QWidget):
             self.result_text.append(f"Selected {len(files)} files for recognition\n")
     
     def _clear_files(self):
+        """清空已选择的文件列表"""
         self.file_table.setRowCount(0)
         self.clear_files_btn.setEnabled(False)
         self.recognize_btn.setEnabled(False)
     
     def _start_recognition(self):
+        """
+        开始识别
+        
+        加载所有选中文件的光谱数据，使用模型进行分类识别，
+        并显示结果
+        """
         if self.classifier is None or not hasattr(self, 'file_paths'):
             return
         
@@ -160,10 +213,12 @@ class RecognitionPanel(QWidget):
                     else:
                         data = parse_isf_file(filepath)
                     
+                    # 过滤400nm以下数据
                     mask = data.wavelengths >= 400
                     wavelengths = data.wavelengths[mask]
                     intensities = data.intensities[mask]
                     
+                    # 提取特征并预测
                     features = self.classifier._extract_features(wavelengths, intensities)
                     features = features.reshape(1, -1)
                     
@@ -186,6 +241,7 @@ class RecognitionPanel(QWidget):
                         'confidence': None
                     })
             
+            # 显示结果
             self.result_text.append("=" * 50)
             self.result_text.append("Recognition Results:")
             self.result_text.append("=" * 50)
@@ -195,6 +251,7 @@ class RecognitionPanel(QWidget):
                 predicted = result['class']
                 confidence = result['confidence']
                 
+                # 更新表格
                 for row in range(self.file_table.rowCount()):
                     item = self.file_table.item(row, 0)
                     if item and item.text() == filename:
@@ -205,6 +262,7 @@ class RecognitionPanel(QWidget):
                             self.file_table.setItem(row, 2, QTableWidgetItem("-"))
                         break
                 
+                # 更新结果文本
                 if confidence is not None:
                     self.result_text.append(
                         f"{filename}: {predicted} ({confidence*100:.2f}%)"
@@ -224,6 +282,12 @@ class RecognitionPanel(QWidget):
             traceback.print_exc()
     
     def load_model_from_path(self, filepath: str):
+        """
+        从路径加载模型
+        
+        Args:
+            filepath: 模型文件路径
+        """
         if os.path.exists(filepath):
             try:
                 from ..core.model_trainer import SpectrumClassifier
@@ -245,6 +309,9 @@ class RecognitionPanel(QWidget):
                 QMessageBox.critical(self, "Error", f"Failed to load model:\n{str(e)}")
     
     def refresh_text(self):
+        """
+        刷新界面文本（用于语言切换）
+        """
         self.model_group.setTitle(t("model"))
         self.file_group.setTitle(t("recognition_files"))
         self.result_group.setTitle(t("recognition_results"))

@@ -1,3 +1,25 @@
+"""
+数据清洗面板
+
+提供数据质量检测功能，包括无效数据、异常值、重复文件、离群光谱检测
+支持批量删除、移动和报告导出
+
+主要功能:
+    - 无效数据检测：检测格式错误、缺少数据等
+    - 异常点检测：使用IQR或Z-Score方法检测异常点
+    - 重复文件检测：基于光谱相似度检测重复文件
+    - 离群光谱检测：检测与其他类别显著不同的光谱
+    - 结果展示：表格显示所有问题
+    - 批量操作：删除、移动问题文件
+    - 报告导出：导出检测结果为文本文件
+
+信号:
+    cleaning_completed: 清洗完成时发射，参数为问题列表字典
+
+用法:
+    panel = DataCleaningPanel()
+"""
+
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
                              QPushButton, QGroupBox, QFileDialog, QTextEdit,
                              QListWidget, QCheckBox, QSpinBox, QDoubleSpinBox,
@@ -14,9 +36,21 @@ from .spectrum_plot import SpectrumPlotWidget
 
 
 class DataCleaningPanel(QWidget):
+    """
+    数据清洗面板widget
+    
+    提供数据质量检测和问题文件处理功能界面
+    """
+    
     cleaning_completed = pyqtSignal(dict)
     
     def __init__(self, parent=None):
+        """
+        初始化数据清洗面板
+        
+        Args:
+            parent: 父widget
+        """
         super().__init__(parent)
         
         self.data_cleaner = None
@@ -27,11 +61,15 @@ class DataCleaningPanel(QWidget):
         self._init_ui()
     
     def _init_ui(self):
+        """
+        构建UI布局
+        """
         from ..core.data_cleaner import DataCleaner
         self.data_cleaner = DataCleaner()
         
         main_layout = QVBoxLayout(self)
         
+        # 检测选项组
         self.options_group = QGroupBox(t("detection_options"))
         options_layout = QVBoxLayout()
         
@@ -93,6 +131,7 @@ class DataCleaningPanel(QWidget):
         
         self.options_group.setLayout(options_layout)
         
+        # 数据选择
         top_layout = QHBoxLayout()
         top_layout.addWidget(self.options_group, 1)
         
@@ -117,6 +156,7 @@ class DataCleaningPanel(QWidget):
         data_group_widget.setLayout(data_group_layout)
         top_layout.addWidget(data_group_widget, 1)
         
+        # 分析按钮和进度条
         self.analyze_btn = QPushButton(t("start_analysis"))
         self.analyze_btn.clicked.connect(self._start_analysis)
         self.analyze_btn.setEnabled(False)
@@ -124,9 +164,11 @@ class DataCleaningPanel(QWidget):
         self.progress_bar = QProgressBar()
         self.progress_bar.setVisible(False)
         
+        # 结果显示组
         self.results_group = QGroupBox(t("analysis_results"))
         results_layout = QVBoxLayout()
         
+        # 问题表格
         self.issues_table = QTableWidget()
         self.issues_table.setColumnCount(4)
         self.issues_table.setHorizontalHeaderLabels([t("file_col"), t("type_col"), t("severity_col"), t("description_col")])
@@ -139,6 +181,7 @@ class DataCleaningPanel(QWidget):
         self.issues_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.issues_table.customContextMenuRequested.connect(self._show_context_menu)
         
+        # 光谱预览组
         self.preview_group = QGroupBox(t("spectrum_preview"))
         preview_layout = QVBoxLayout()
         
@@ -147,13 +190,16 @@ class DataCleaningPanel(QWidget):
         
         self.preview_group.setLayout(preview_layout)
         
+        # 结果摘要
         self.result_summary = QTextEdit()
         self.result_summary.setReadOnly(True)
         
+        # 底部分割器
         bottom_splitter = QSplitter(Qt.Orientation.Horizontal)
         bottom_splitter.addWidget(self.result_summary)
         bottom_splitter.addWidget(self.preview_group)
         
+        # 垂直分割器
         main_splitter = QSplitter(Qt.Orientation.Vertical)
         main_splitter.addWidget(self.issues_table)
         main_splitter.addWidget(bottom_splitter)
@@ -164,6 +210,7 @@ class DataCleaningPanel(QWidget):
         
         self.results_group.setLayout(results_layout)
         
+        # 操作按钮组
         self.action_group = QGroupBox(t("actions"))
         action_layout = QHBoxLayout()
         
@@ -189,6 +236,7 @@ class DataCleaningPanel(QWidget):
         action_layout.addStretch()
         self.action_group.setLayout(action_layout)
         
+        # 添加到主布局
         main_layout.addLayout(top_layout)
         main_layout.addWidget(self.analyze_btn)
         main_layout.addWidget(self.progress_bar)
@@ -196,6 +244,9 @@ class DataCleaningPanel(QWidget):
         main_layout.addWidget(self.action_group)
     
     def _select_data_folder(self):
+        """
+        选择数据文件夹
+        """
         directory = QFileDialog.getExistingDirectory(
             self, "Select Data Directory", 
             os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
@@ -205,6 +256,7 @@ class DataCleaningPanel(QWidget):
             self.data_dir = directory
             self.data_path_label.setText(f"Data: {directory}")
             
+            # 扫描文件
             isf_files = [f for f in os.listdir(directory) if f.lower().endswith('.isf')]
             xlsx_files = [f for f in os.listdir(directory) if f.lower().endswith(('.xlsx', '.xls'))]
             all_files = isf_files + xlsx_files
@@ -218,6 +270,11 @@ class DataCleaningPanel(QWidget):
                 self.file_count_label.setText("No data files found")
     
     def _start_analysis(self):
+        """
+        开始数据分析
+        
+        加载所有文件并执行各项检测
+        """
         if not self.loaded_files:
             return
         
@@ -238,10 +295,12 @@ class DataCleaningPanel(QWidget):
             
             total_files = len(self.loaded_files)
             
+            # 加载所有文件
             for idx, filepath in enumerate(self.loaded_files):
                 try:
                     ext = os.path.splitext(filepath)[1].lower()
                     
+                    # 检查文件格式
                     if ext not in ('.isf', '.xlsx', '.xls'):
                         self.all_issues.append({
                             'file': os.path.basename(filepath),
@@ -252,6 +311,7 @@ class DataCleaningPanel(QWidget):
                         })
                         continue
                     
+                    # Excel文件验证
                     if ext in ('.xlsx', '.xls'):
                         try:
                             from python_calamine import CalamineWorkbook
@@ -294,6 +354,7 @@ class DataCleaningPanel(QWidget):
                             })
                             continue
                     
+                    # ISF文件验证
                     if ext == '.isf':
                         try:
                             with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
@@ -317,11 +378,13 @@ class DataCleaningPanel(QWidget):
                             })
                             continue
                     
+                    # 解析文件
                     if ext in ('.xlsx', '.xls'):
                         data = parse_xlsx_file(filepath)
                     else:
                         data = parse_isf_file(filepath)
                     
+                    # 检查数据有效性
                     if data.wavelengths is None or data.intensities is None:
                         self.all_issues.append({
                             'file': os.path.basename(filepath),
@@ -342,6 +405,7 @@ class DataCleaningPanel(QWidget):
                         })
                         continue
                     
+                    # 过滤400nm以下数据
                     mask = data.wavelengths >= 400
                     filtered_wl = data.wavelengths[mask]
                     filtered_int = data.intensities[mask]
@@ -365,6 +429,7 @@ class DataCleaningPanel(QWidget):
                             'full_path': filepath
                         })
                     
+                    # 保存有效数据
                     self.file_data[filepath] = {
                         'wavelengths': filtered_wl,
                         'intensities': filtered_int,
@@ -385,6 +450,7 @@ class DataCleaningPanel(QWidget):
             
             self.result_summary.append(f"Loaded {len(self.file_data)} files successfully\n")
             
+            # 执行各项检测
             self._detect_issues()
             
             self.progress_bar.setValue(100)
@@ -403,6 +469,11 @@ class DataCleaningPanel(QWidget):
             traceback.print_exc()
     
     def _detect_issues(self):
+        """
+        执行各项数据检测
+        
+        包括：无效数据、异常点、重复文件、离群光谱
+        """
         invalid_issues = []
         anomaly_issues = []
         duplicate_issues = []
@@ -417,6 +488,7 @@ class DataCleaningPanel(QWidget):
         progress_base = 40
         progress_per_item = 50 // max(total_issues_expected, 1)
         
+        # 无效数据检测
         if self.check_invalid_cb.isChecked():
             self.result_summary.append("\n=== Checking Invalid Data ===")
             
@@ -442,6 +514,7 @@ class DataCleaningPanel(QWidget):
             
             self.result_summary.append(f"Found {len(invalid_issues)} invalid data issues\n")
         
+        # 异常点检测
         if self.check_anomaly_cb.isChecked():
             self.result_summary.append("\n=== Checking Anomalies ===")
             
@@ -473,6 +546,7 @@ class DataCleaningPanel(QWidget):
             
             self.result_summary.append(f"Found {len(anomaly_issues)} files with anomalies\n")
         
+        # 重复文件检测
         if self.check_duplicate_cb.isChecked():
             self.result_summary.append("\n=== Checking Duplicates ===")
             
@@ -501,6 +575,7 @@ class DataCleaningPanel(QWidget):
             
             self.result_summary.append(f"Found {len(duplicate_issues)} duplicate files\n")
         
+        # 离群光谱检测
         if self.check_outlier_cb.isChecked():
             self.result_summary.append("\n=== Checking Outlier Spectra (异种类别) ===")
             
@@ -533,6 +608,11 @@ class DataCleaningPanel(QWidget):
         self._display_results()
     
     def _display_results(self):
+        """
+        显示检测结果
+        
+        在表格中显示所有问题，按严重程度着色
+        """
         self.issues_table.setRowCount(len(self.all_issues))
         
         high_count = sum(1 for i in self.all_issues if i['severity'] == 'high')
@@ -543,6 +623,7 @@ class DataCleaningPanel(QWidget):
             self.issues_table.setItem(row, 0, QTableWidgetItem(issue['file']))
             self.issues_table.setItem(row, 1, QTableWidgetItem(issue['type']))
             
+            # 严重程度着色
             severity_item = QTableWidgetItem(issue['severity'])
             if issue['severity'] == 'high':
                 severity_item.setBackground(Qt.GlobalColor.red)
@@ -554,6 +635,7 @@ class DataCleaningPanel(QWidget):
             
             self.issues_table.setItem(row, 3, QTableWidgetItem(issue['description']))
         
+        # 摘要
         self.result_summary.append("\n=== Summary ===")
         self.result_summary.append(f"Total issues: {len(self.all_issues)}")
         self.result_summary.append(f"  - High: {high_count}")
@@ -565,6 +647,9 @@ class DataCleaningPanel(QWidget):
             self.result_summary.append("Please review and clean these files before modeling.")
     
     def _export_report(self):
+        """
+        导出检测报告
+        """
         if not self.all_issues:
             return
         
@@ -617,6 +702,7 @@ class DataCleaningPanel(QWidget):
                 QMessageBox.critical(self, "Error", f"Failed to save report:\n{str(e)}")
     
     def _clear_results(self):
+        """清空结果"""
         self.issues_table.setRowCount(0)
         self.result_summary.clear()
         self.all_issues = []
@@ -627,6 +713,11 @@ class DataCleaningPanel(QWidget):
         self.spectrum_plot.clear()
     
     def _on_selection_changed(self):
+        """
+        选中行变化处理
+        
+        在预览区显示选中问题的光谱
+        """
         selected_rows = set(item.row() for item in self.issues_table.selectedItems())
         
         if not selected_rows:
@@ -645,6 +736,7 @@ class DataCleaningPanel(QWidget):
             filename = issue.get('file', '')
             full_path = issue.get('full_path', '')
             
+            # 查找数据
             data = None
             if full_path and full_path in self.file_data:
                 data = self.file_data[full_path]
@@ -672,6 +764,9 @@ class DataCleaningPanel(QWidget):
             self.spectrum_plot.clear()
     
     def refresh_text(self):
+        """
+        刷新界面文本（用于语言切换）
+        """
         self.options_group.setTitle(t("detection_options"))
         self.results_group.setTitle(t("analysis_results"))
         self.preview_group.setTitle(t("spectrum_preview"))
@@ -684,6 +779,12 @@ class DataCleaningPanel(QWidget):
         self.clear_btn.setText(t("clear"))
     
     def _show_context_menu(self, position):
+        """
+        显示右键菜单
+        
+        Args:
+            position: 菜单位置
+        """
         selected_items = self.issues_table.selectedItems()
         if not selected_items:
             return
@@ -707,7 +808,13 @@ class DataCleaningPanel(QWidget):
         
         menu.exec(self.issues_table.viewport().mapToGlobal(position))
     
-    def _delete_file(self, row):
+    def _delete_file(self, row: int):
+        """
+        删除单个文件
+        
+        Args:
+            row: 行索引
+        """
         if row >= len(self.all_issues):
             return
         
@@ -740,6 +847,9 @@ class DataCleaningPanel(QWidget):
                 QMessageBox.critical(self, t("error"), f"{t('delete_failed')}: {str(e)}")
     
     def _batch_delete(self):
+        """
+        批量删除选中文件
+        """
         selected_rows = set()
         for item in self.issues_table.selectedItems():
             selected_rows.add(item.row())
@@ -770,10 +880,10 @@ class DataCleaningPanel(QWidget):
                     if os.path.exists(full_path):
                         os.remove(full_path)
                         deleted_count += 1
-                        
+                    
                     if full_path in self.file_data:
                         del self.file_data[full_path]
-                        
+                    
                 except Exception as e:
                     self.result_summary.append(f"Failed to delete {issue.get('file', '')}: {str(e)}")
             
@@ -785,6 +895,9 @@ class DataCleaningPanel(QWidget):
             self.result_summary.append(f"Deleted {deleted_count} files")
     
     def _batch_move(self):
+        """
+        批量移动选中文件
+        """
         selected_rows = set()
         for item in self.issues_table.selectedItems():
             selected_rows.add(item.row())
@@ -835,6 +948,9 @@ class DataCleaningPanel(QWidget):
         self.result_summary.append(t("move_success").format(count=moved_count, folder=target_folder))
     
     def _refresh_issues_table(self):
+        """
+        刷新问题表格
+        """
         self.issues_table.setRowCount(len(self.all_issues))
         for row, issue in enumerate(self.all_issues):
             self.issues_table.setItem(row, 0, QTableWidgetItem(issue.get('file', '')))
@@ -852,7 +968,13 @@ class DataCleaningPanel(QWidget):
             
             self.issues_table.setItem(row, 4, QTableWidgetItem(issue.get('description', '')))
     
-    def _open_file_location(self, filepath):
+    def _open_file_location(self, filepath: str):
+        """
+        打开文件所在位置
+        
+        Args:
+            filepath: 文件路径
+        """
         if not filepath or not os.path.exists(filepath):
             return
         

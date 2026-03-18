@@ -1,3 +1,23 @@
+"""
+训练面板
+
+提供模型训练功能，支持选择数据目录、设置模型类型和参数，训练完成后可保存模型
+
+主要功能:
+    - 选择训练数据目录
+    - 支持已分割和未分割的数据集
+    - 选择模型类型（Random Forest、SVM、Gradient Boosting）
+    - 设置训练/测试集比例
+    - 显示训练结果和评估指标
+    - 保存训练好的模型
+
+信号:
+    training_completed: 训练完成时发射，参数为训练结果字典
+
+用法:
+    panel = TrainingPanel()
+"""
+
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
                              QComboBox, QPushButton, QGroupBox, QFileDialog,
                              QTextEdit, QDoubleSpinBox, QProgressBar)
@@ -7,17 +27,31 @@ from ..core.i18n import t
 
 
 class TrainingPanel(QWidget):
+    """
+    训练面板widget
+    
+    提供光谱分类模型训练功能界面
+    """
+    
     training_completed = pyqtSignal(dict)
     
     def __init__(self, parent=None):
+        """
+        初始化训练面板
+        
+        Args:
+            parent: 父widget
+        """
         super().__init__(parent)
         
         self.classifier = None
         self._init_ui()
     
     def _init_ui(self):
+        """构建UI布局"""
         main_layout = QVBoxLayout(self)
         
+        # 数据选择组
         self.data_group = QGroupBox(t("training_data"))
         data_layout = QVBoxLayout()
         
@@ -39,6 +73,7 @@ class TrainingPanel(QWidget):
         
         self.data_group.setLayout(data_layout)
         
+        # 模型设置组
         self.model_group = QGroupBox(t("model_settings"))
         model_layout = QVBoxLayout()
         
@@ -66,6 +101,7 @@ class TrainingPanel(QWidget):
         
         self.model_group.setLayout(model_layout)
         
+        # 训练和保存按钮
         self.train_btn = QPushButton(t("start_training"))
         self.train_btn.setEnabled(False)
         self.train_btn.clicked.connect(self._start_training)
@@ -74,9 +110,11 @@ class TrainingPanel(QWidget):
         self.save_btn.setEnabled(False)
         self.save_btn.clicked.connect(self._save_model)
         
+        # 进度条
         self.progress_bar = QProgressBar()
         self.progress_bar.setVisible(False)
         
+        # 结果显示组
         self.result_group = QGroupBox(t("results"))
         result_layout = QVBoxLayout()
         
@@ -96,11 +134,17 @@ class TrainingPanel(QWidget):
         main_layout.addStretch()
     
     def _update_load_progress(self):
+        """更新数据加载进度"""
         if hasattr(self, 'classifier') and self.classifier:
             progress = self.classifier.load_progress
             self.progress_bar.setValue(5 + progress)
     
     def _select_data_directory(self):
+        """
+        选择训练数据目录
+        
+        弹出文件夹对话框选择数据目录
+        """
         directory = QFileDialog.getExistingDirectory(
             self, "Select Training Data Directory", 
             os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
@@ -111,13 +155,23 @@ class TrainingPanel(QWidget):
             self.data_path_label.setText(f"Data: {directory}")
             self._scan_directory(directory)
     
-    def _scan_directory(self, directory):
+    def _scan_directory(self, directory: str):
+        """
+        扫描数据目录
+        
+        检查目录结构，判断是否为已分割的数据集(train/val/test)，
+        并显示数据统计信息
+        
+        Args:
+            directory: 数据目录路径
+        """
         from ..core.model_trainer import SpectrumClassifier
         
         classifier = SpectrumClassifier()
         is_split = classifier.detect_split_dirs(directory)
         
         if is_split:
+            # 已分割的数据集
             train_dir = os.path.join(directory, 'train')
             categories = sorted([d for d in os.listdir(train_dir) 
                                if os.path.isdir(os.path.join(train_dir, d))])
@@ -188,6 +242,11 @@ class TrainingPanel(QWidget):
         self.train_btn.setEnabled(True)
     
     def _start_training(self):
+        """
+        开始训练
+        
+        在后台线程加载数据并训练模型，完成后显示训练结果
+        """
         if not hasattr(self, 'data_dir'):
             return
         
@@ -199,6 +258,7 @@ class TrainingPanel(QWidget):
         
         from ..core.model_trainer import SpectrumClassifier
         
+        # 获取模型类型
         model_type_map = {
             t("random_forest"): "rf",
             t("svm"): "svm",
@@ -248,43 +308,12 @@ class TrainingPanel(QWidget):
         self._check_load_and_continue(model_type)
     
     def _check_load_and_continue(self, model_type: str):
-        if not self.load_finished:
-            QTimer.singleShot(100, lambda: self._check_load_and_continue(model_type))
-            return
+        """
+        检查数据加载完成并继续训练
         
-        self.load_timer.stop()
-        
-        if hasattr(self, 'is_split_data') and self.is_split_data:
-            self.result_text.append(f"Loaded {len(self.y_train)} training samples")
-            self.result_text.append(f"Using pre-split data (Train: {len(self.y_train)}, Val: {len(self.y_val) if self.y_val is not None else 0}, Test: {len(self.y_test) if self.y_test is not None else 0})")
-        else:
-            self.result_text.append(f"Loaded {len(self.y_train)} samples with {self.classifier.feature_length} features")
-        
-        self.result_text.append(f"Classes: {', '.join(self.classifier.get_class_names())}")
-        self.progress_bar.setValue(50)
-        
-        self.result_text.append(f"\nTraining {model_type} model...")
-        self.progress_bar.setValue(60)
-        
-        if hasattr(self, 'is_split_data') and self.is_split_data:
-            result = self.classifier.train(
-                self.X_train, self.y_train, 
-                model_type=model_type,
-                random_state=42,
-                X_val=self.X_val if self.X_val is not None else None, 
-                y_val=self.y_val if self.y_val is not None else None,
-                X_test=self.X_test if self.X_test is not None else None, 
-                y_test=self.y_test if self.y_test is not None else None
-            )
-        else:
-            result = self.classifier.train(
-                self.X_train, self.y_train, 
-                model_type=model_type,
-                test_size=self.test_size_spin.value(),
-                random_state=42
-            )
-    
-    def _check_load_and_continue(self, model_type: str):
+        Args:
+            model_type: 模型类型字符串
+        """
         if not self.load_finished:
             QTimer.singleShot(100, lambda: self._check_load_and_continue(model_type))
             return
@@ -324,6 +353,7 @@ class TrainingPanel(QWidget):
             
             self.progress_bar.setValue(90)
             
+            # 显示训练结果
             self.result_text.append("\n=== Training Results ===")
             self.result_text.append(f"Test Accuracy: {result['accuracy']:.4f}")
             self.result_text.append(f"Training samples: {result['train_size']}")
@@ -333,6 +363,7 @@ class TrainingPanel(QWidget):
                 self.result_text.append(f"Validation Accuracy: {result['val_accuracy']:.4f}")
             self.result_text.append(f"Number of classes: {result['n_classes']}")
             
+            # 分类报告
             self.result_text.append("\n=== Test Set Classification Report ===")
             report = result['report']
             for cls in result['classes']:
@@ -343,6 +374,7 @@ class TrainingPanel(QWidget):
                         f"F1={report[cls]['f1-score']:.4f}"
                     )
             
+            # 验证集报告
             if result.get('has_validation') and 'val_report' in result:
                 self.result_text.append("\n=== Validation Set Classification Report ===")
                 val_report = result['val_report']
@@ -367,6 +399,9 @@ class TrainingPanel(QWidget):
             traceback.print_exc()
     
     def _save_model(self):
+        """
+        保存训练好的模型
+        """
         if self.classifier is None or not self.classifier.is_trained:
             return
         
@@ -383,6 +418,9 @@ class TrainingPanel(QWidget):
                 self.result_text.append(f"Error saving model: {str(e)}")
     
     def refresh_text(self):
+        """
+        刷新界面文本（用于语言切换）
+        """
         self.data_group.setTitle(t("training_data"))
         self.model_group.setTitle(t("model_settings"))
         self.result_group.setTitle(t("results"))
