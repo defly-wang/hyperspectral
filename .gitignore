@@ -6,6 +6,7 @@
 /data
 /xlsxdata
 /model
+/spectral_database
 
 # Python
 *.py[cod]

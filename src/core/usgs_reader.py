@@ -148,9 +148,14 @@ class USGSSpectralLibrary:
                     continue
                 try:
                     value = float(line)
+                    if np.isnan(value) or np.isinf(value):
+                        continue
                     intensities.append(value)
                 except ValueError:
                     continue
+            
+            if len(intensities) < 10:
+                return None
             
             wavelengths = self._get_wavelengths(len(intensities))
             
