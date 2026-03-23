@@ -229,6 +229,30 @@ class SpectrumPlotWidget(QWidget):
         self.axes.set_xlabel(label)
         self.canvas.draw()
 
+    def add_spectrum(self, wavelengths: np.ndarray, intensities: np.ndarray, 
+                     name: str = "Spectrum", color: str = None):
+        """
+        添加一条光谱到当前图表
+        
+        Args:
+            wavelengths: 波长数组
+            intensities: 强度数组
+            name: 光谱名称
+            color: 线条颜色(可选)
+        """
+        if color is None:
+            num_lines = len(self.axes.get_lines())
+            colors = plt.cm.tab10(np.linspace(0, 1, 10))
+            color = colors[num_lines % 10]
+        
+        line, = self.axes.plot(wavelengths, intensities, color=color, 
+                      linewidth=1, label=name, picker=True, pickradius=5)
+        
+        self.legend = self.axes.legend()
+        self.legend.set_draggable(True)
+        
+        self.canvas.draw()
+
     def set_ylabel(self, label: str):
         """
         设置Y轴标签

@@ -27,6 +27,7 @@ from .training_panel import TrainingPanel
 from .recognition_panel import RecognitionPanel
 from .data_cleaning_panel import DataCleaningPanel
 from .data_split_panel import DataSplitPanel
+from .spectral_library_panel import SpectralLibraryPanel
 from ..core.i18n import t, set_language, LanguageManager
 
 
@@ -92,8 +93,14 @@ class MainWindow(QMainWindow):
         split_action = QAction(t("data_split"), self)
         split_action.triggered.connect(self._show_split_panel)
         
+        library_action = QAction(t("spectral_library"), self)
+        library_action.setShortcut("Ctrl+L")
+        library_action.triggered.connect(self._show_library_panel)
+        
         data_menu.addAction(cleaning_action)
         data_menu.addAction(split_action)
+        data_menu.addSeparator()
+        data_menu.addAction(library_action)
         
         # 语言菜单
         lang_menu = menubar.addMenu(t("language"))
@@ -148,7 +155,7 @@ class MainWindow(QMainWindow):
         
         # 创建各个面板
         self.preview_panel = PreviewPanel()
-        
+        self.spectral_library_panel = SpectralLibraryPanel()
         self.training_panel = TrainingPanel()
         self.recognition_panel = RecognitionPanel()
         self.data_cleaning_panel = DataCleaningPanel()
@@ -156,6 +163,7 @@ class MainWindow(QMainWindow):
         
         # 添加标签页
         self.tab_widget.addTab(self.preview_panel, t("preview"))
+        self.tab_widget.addTab(self.spectral_library_panel, t("spectral_library"))
         self.tab_widget.addTab(self.data_cleaning_panel, t("data_cleaning"))
         self.tab_widget.addTab(self.data_split_panel, t("data_split"))
         self.tab_widget.addTab(self.training_panel, t("model_training"))
@@ -185,13 +193,15 @@ class MainWindow(QMainWindow):
         
         current_index = self.tab_widget.currentIndex()
         self.tab_widget.setTabText(0, t("preview"))
-        self.tab_widget.setTabText(1, t("data_split"))
+        self.tab_widget.setTabText(1, t("spectral_library"))
         self.tab_widget.setTabText(2, t("data_cleaning"))
-        self.tab_widget.setTabText(3, t("model_training"))
-        self.tab_widget.setTabText(4, t("recognition_tab"))
+        self.tab_widget.setTabText(3, t("data_split"))
+        self.tab_widget.setTabText(4, t("model_training"))
+        self.tab_widget.setTabText(5, t("recognition_tab"))
         self.tab_widget.setCurrentIndex(current_index)
         
         self.preview_panel.refresh_text()
+        self.spectral_library_panel.refresh_text()
         self.data_split_panel.refresh_text()
         self.data_cleaning_panel.refresh_text()
         self.training_panel.refresh_text()
@@ -212,19 +222,23 @@ class MainWindow(QMainWindow):
 
     def _show_cleaning_panel(self):
         """显示数据清洗面板"""
-        self.tab_widget.setCurrentIndex(1)
+        self.tab_widget.setCurrentIndex(2)
 
+    def _show_library_panel(self):
+        """显示光谱库面板"""
+        self.tab_widget.setCurrentIndex(1)
+    
     def _show_split_panel(self):
         """显示数据分割面板"""
-        self.tab_widget.setCurrentIndex(2)
+        self.tab_widget.setCurrentIndex(3)
 
     def _show_training_panel(self):
         """显示训练面板"""
-        self.tab_widget.setCurrentIndex(3)
+        self.tab_widget.setCurrentIndex(4)
 
     def _show_recognition_panel(self):
         """显示识别面板"""
-        self.tab_widget.setCurrentIndex(4)
+        self.tab_widget.setCurrentIndex(5)
     
     def _load_model(self):
         """

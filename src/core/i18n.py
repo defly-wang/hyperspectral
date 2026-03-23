@@ -157,6 +157,7 @@ translations: Dict[str, Dict[str, str]] = {
         
         # Data Split
         "data_split": "数据集分割",
+        "spectral_library": "光谱库",
         "output_directory": "输出目录",
         "split_settings": "分割设置",
         "split_type": "分割类型",
@@ -328,6 +329,7 @@ translations: Dict[str, Dict[str, str]] = {
         
         # Data Split
         "data_split": "Data Split",
+        "spectral_library": "Spectral Library",
         "output_directory": "Output Directory",
         "split_settings": "Split Settings",
         "split_type": "Split Type",
