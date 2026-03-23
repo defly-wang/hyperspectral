@@ -107,7 +107,7 @@ class SpectralLibraryPanel(QWidget):
         self.info_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)
         self.info_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
         self.info_table.setColumnWidth(0, 120)
-        self.info_table.setReadOnly(True)
+        self.info_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.info_table.setMaximumHeight(120)
         
         info_layout.addWidget(self.info_table)
@@ -287,7 +287,3 @@ class SpectralLibraryPanel(QWidget):
     def refresh_text(self):
         """刷新界面文本"""
         pass
-    
-    def set_status_label(self, label):
-        """设置状态标签"""
-        self.statusLabel = label
