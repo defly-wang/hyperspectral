@@ -148,7 +148,7 @@ class USGSSpectralLibrary:
                     continue
                 try:
                     value = float(line)
-                    if np.isnan(value) or np.isinf(value):
+                    if np.isnan(value) or np.isinf(value) or abs(value) > 1e30:
                         continue
                     intensities.append(value)
                 except ValueError:
