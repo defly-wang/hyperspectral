@@ -9,7 +9,8 @@ A PyQt6-based desktop application for hyperspectral data processing and visualiz
 - Language menu for easy switching
 
 ### Data Viewing
-- **Multi-format Support**: Supports `.isf` and `.xlsx/.xls` hyperspectral data files
+- **Multi-format Support**: Supports `.isf`, `.xlsx/.xls` hyperspectral data, and USGS spectral library `.txt` files
+- **USGS Spectral Library**: Built-in USGS spectral library browser with category/sub-category filtering, bilingual display (Chinese/English)
 - **Spectrum Curve Display**: Visualize wavelength vs reflectance/transmittance
 - **Multi-file Viewing**: Single or multiple file selection, multiple curves in one chart
 - **Draggable Legend**: Legend can be dragged to any position
@@ -40,16 +41,18 @@ A PyQt6-based desktop application for hyperspectral data processing and visualiz
 - Smoothing (Savitzky-Golay / Moving Average)
 - Normalization (Min-Max / Z-Score)
 - Baseline Correction (AirPLS / Baseline Subtraction)
-- Auto-filter wavelengths below 400nm
+- Auto-filter wavelengths below 350nm
 
 ### Model Training
 - Three ML models: Random Forest, SVM, Gradient Boosting
 - Auto-load training data from directories (categorized by subdirectories)
+- Support loading USGS spectral library directory directly as training data
 - Training results with accuracy and classification report
 - Model save/load functionality
 
 ### Recognition
 - Load trained models for prediction
+- Support recognizing local files (.isf, .xlsx, .xls) and USGS spectral files (.txt)
 - Batch recognition of multiple files
 - Display recognition results with confidence
 - Table format display file list with filename, recognition result, and confidence

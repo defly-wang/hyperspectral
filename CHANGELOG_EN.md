@@ -2,6 +2,21 @@
 
 ## [Unreleased]
 
+### 2026-03-23
+
+### New Features
+- **USGS Spectral Library Support**
+  - Preview module supports browsing USGS spectral library directly
+  - Support category/sub-category filtering
+  - Sub-category names displayed in bilingual format (Chinese/English)
+  - Training module supports loading USGS spectral library directory directly as training data
+  - Data cleaning module supports USGS .txt file validation and parsing
+  - Recognition module supports USGS spectral file recognition
+
+- **Wavelength Range Adjustment**
+  - Minimum wavelength changed from 400nm to 350nm across all modules
+  - USGS spectrum reading supports instrument-specific wavelength files (ASD/BECK/NIC4/AVIRIS)
+
 ### 2026-03-18
 
 ### New Features
@@ -54,7 +69,7 @@
   - Renamed to "Hyperspectral Data Management System - HyperspectralDMS"
 
 ### Feature Improvements
-- Wavelength filter changed from 500nm to 400nm
+- Wavelength filter changed from 500nm to 400nm, then to 350nm
 - File list sorted by filename
 
 ### UI Improvements
