@@ -214,7 +214,8 @@ class SpectralLibraryPanel(QWidget):
         
         sub_cats = self.current_library.get_sub_categories(category)
         for sub_cat in sub_cats:
-            self.sub_category_combo.addItem(sub_cat, sub_cat)
+            display_name = USGSSpectralLibrary.get_sub_category_display_name(sub_cat)
+            self.sub_category_combo.addItem(display_name, sub_cat)
     
     def _on_search(self):
         """搜索处理"""
@@ -253,7 +254,7 @@ class SpectralLibraryPanel(QWidget):
             ("类别", spectrum.metadata.category),
             ("子类别", spectrum.metadata.sub_category),
             ("记录ID", spectrum.metadata.record_id),
-            ("波长范围", f"{spectrum.wavelengths[0]:.3f} - {spectrum.wavelengths[-1]:.3f} μm"),
+            ("波长范围", f"{spectrum.wavelengths[0]:.3f} - {spectrum.wavelengths[-1]:.3f} nm"),
             ("数据点数", str(len(spectrum.wavelengths))),
         ]
         

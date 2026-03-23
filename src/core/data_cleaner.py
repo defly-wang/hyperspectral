@@ -36,12 +36,12 @@ class DataCleaner:
     - 趋势异常检测
     """
     
-    def __init__(self, min_wavelength: float = 400, max_wavelength: float = 2500):
+    def __init__(self, min_wavelength: float = 350, max_wavelength: float = 2500):
         """
         初始化数据清洗器
         
         Args:
-            min_wavelength: 最小有效波长（默认400nm）
+            min_wavelength: 最小有效波长（默认350nm）
             max_wavelength: 最大有效波长（默认2500nm）
         """
         self.min_wavelength = min_wavelength

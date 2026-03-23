@@ -50,12 +50,12 @@ class SpectrumClassifier:
     特征提取：将光谱数据按波长转换为固定长度的特征向量
     """
     
-    def __init__(self, min_wavelength: int = 400, max_wavelength: int = 2500):
+    def __init__(self, min_wavelength: int = 350, max_wavelength: int = 2500):
         """
         初始化分类器
         
         Args:
-            min_wavelength: 最小波长（默认400nm）
+            min_wavelength: 最小波长（默认350nm）
             max_wavelength: 最大波长（默认2500nm）
         """
         self.model = None
@@ -70,7 +70,7 @@ class SpectrumClassifier:
         self.total_files = 0     # 总文件数
         self.loaded_files = 0    # 已加载文件数
     
-    def load_data_from_directory(self, data_dir: str, min_wavelength: float = 400,
+    def load_data_from_directory(self, data_dir: str, min_wavelength: float = 350,
                                  use_split_dirs: bool = False,
                                  progress_callback: Optional[Callable[[int], None]] = None) -> Tuple[np.ndarray, np.ndarray, 
                                                                        Optional[np.ndarray], Optional[np.ndarray],

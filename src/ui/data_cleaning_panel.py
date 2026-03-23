@@ -306,10 +306,34 @@ class DataCleaningPanel(QWidget):
                             'file': os.path.basename(filepath),
                             'type': 'invalid_format',
                             'severity': 'high',
-                            'description': f'不支持的文件格式: {ext}，仅支持 .isf, .xlsx, .xls',
+                            'description': f'不支持的文件格式: {ext}，仅支持 .isf, .xlsx, .xls, .txt(USGS)',
                             'full_path': filepath
                         })
                         continue
+                    
+                    # USGS文件验证
+                    if ext == '.txt':
+                        try:
+                            with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
+                                content = f.readline()
+                                if 'splib07a' not in content:
+                                    self.all_issues.append({
+                                        'file': os.path.basename(filepath),
+                                        'type': 'invalid_format',
+                                        'severity': 'high',
+                                        'description': 'USGS文件格式错误，非USGS光谱库文件',
+                                        'full_path': filepath
+                                    })
+                                    continue
+                        except Exception as usgs_err:
+                            self.all_issues.append({
+                                'file': os.path.basename(filepath),
+                                'type': 'invalid_format',
+                                'severity': 'high',
+                                'description': f'USGS文件读取错误: {str(usgs_err)}',
+                                'full_path': filepath
+                            })
+                            continue
                     
                     # Excel文件验证
                     if ext in ('.xlsx', '.xls'):
@@ -379,7 +403,18 @@ class DataCleaningPanel(QWidget):
                             continue
                     
                     # 解析文件
-                    if ext in ('.xlsx', '.xls'):
+                    if ext == '.txt':
+                        from ..core.usgs_reader import USGSSpectralLibrary
+                        lib = USGSSpectralLibrary(os.path.dirname(os.path.dirname(os.path.dirname(filepath))))
+                        spectrum = lib.load_spectrum(filepath)
+                        if spectrum:
+                            data = type('Data', (), {
+                                'wavelengths': spectrum.wavelengths,
+                                'intensities': spectrum.intensities
+                            })()
+                        else:
+                            raise ValueError("Failed to load USGS spectrum")
+                    elif ext in ('.xlsx', '.xls'):
                         data = parse_xlsx_file(filepath)
                     else:
                         data = parse_isf_file(filepath)
@@ -405,8 +440,8 @@ class DataCleaningPanel(QWidget):
                         })
                         continue
                     
-                    # 过滤400nm以下数据
-                    mask = data.wavelengths >= 400
+                    # 过滤350nm以下数据
+                    mask = data.wavelengths >= 350
                     filtered_wl = data.wavelengths[mask]
                     filtered_int = data.intensities[mask]
                     
@@ -415,7 +450,7 @@ class DataCleaningPanel(QWidget):
                             'file': os.path.basename(filepath),
                             'type': 'invalid_file',
                             'severity': 'high',
-                            'description': '过滤400nm后无有效数据',
+                            'description': '过滤350nm后无有效数据',
                             'full_path': filepath
                         })
                         continue
@@ -752,9 +787,9 @@ class DataCleaningPanel(QWidget):
                 
                 if len(wavelengths) > 0 and len(intensities) > 0:
                     color = colors[idx % len(colors)]
-                    wavelengths_masked = wavelengths[wavelengths >= 400]
+                    wavelengths_masked = wavelengths[wavelengths >= 350]
                     if len(wavelengths_masked) > 0:
-                        min_idx = np.searchsorted(wavelengths, 400)
+                        min_idx = np.searchsorted(wavelengths, 350)
                         intensities_masked = intensities[min_idx:]
                         spectra.append((wavelengths_masked, intensities_masked, filename))
         

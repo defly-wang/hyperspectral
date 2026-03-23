@@ -8,6 +8,7 @@
     - 光谱绘图：显示选中文件的原始光谱
     - 图像视图：显示伪彩色图像
     - 预处理：平滑、归一化、基线校正
+    - 支持本地文件和USGS光谱库数据
 
 信号:
     files_loaded: 文件加载完成时发射，参数为文件路径到数据的字典
@@ -17,7 +18,8 @@
     panel.file_browser._open_folder()  # 打开文件夹选择对话框
 """
 
-from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QSplitter)
+from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QSplitter, 
+                              QComboBox, QPushButton, QGroupBox, QLabel)
 from PyQt6.QtCore import Qt, pyqtSignal
 import os
 
@@ -47,11 +49,40 @@ class PreviewPanel(QWidget):
         super().__init__(parent)
         
         self.loaded_data = {}
+        self.usgs_library = None
+        self.usgs_mode = False
         self._init_ui()
+        self._init_usgs_library()
+    
+    def _init_usgs_library(self):
+        """初始化USGS光谱库"""
+        try:
+            from ..core.usgs_reader import USGSSpectralLibrary
+            from pathlib import Path
+            lib_path = Path(__file__).parent.parent.parent / "spectral_database" / "usgs" / "ASCIIdata_splib07a"
+            if lib_path.exists():
+                self.usgs_library = USGSSpectralLibrary(str(lib_path))
+        except Exception:
+            self.usgs_library = None
     
     def _init_ui(self):
         """构建UI布局"""
         main_layout = QVBoxLayout(self)
+        
+        # 数据源选择
+        source_group = QGroupBox(t("data_source") if hasattr(t, '__call__') else "数据源")
+        source_layout = QHBoxLayout()
+        
+        self.source_combo = QComboBox()
+        self.source_combo.addItem("本地文件", "local")
+        self.source_combo.addItem("USGS光谱库", "usgs")
+        self.source_combo.currentIndexChanged.connect(self._on_source_changed)
+        source_layout.addWidget(QLabel(t("data_source") + ":" if hasattr(t, '__call__') else "数据源:"))
+        source_layout.addWidget(self.source_combo)
+        source_layout.addStretch()
+        source_group.setLayout(source_layout)
+        
+        main_layout.addWidget(source_group)
         
         # 左侧面板：文件浏览器 + 预处理
         left_panel = QWidget()
@@ -63,6 +94,28 @@ class PreviewPanel(QWidget):
         
         left_layout.addWidget(self.file_browser, stretch=2)
         left_layout.addWidget(self.preprocessing_panel, stretch=1)
+        
+        # USGS选择面板
+        self.usgs_select_widget = QWidget()
+        usgs_layout = QVBoxLayout(self.usgs_select_widget)
+        
+        self.usgs_category_combo = QComboBox()
+        self.usgs_category_combo.addItem("全部", "all")
+        usgs_layout.addWidget(QLabel("类别:"))
+        usgs_layout.addWidget(self.usgs_category_combo)
+        
+        self.usgs_subcategory_combo = QComboBox()
+        self.usgs_subcategory_combo.addItem("全部子类别", "all")
+        usgs_layout.addWidget(QLabel("子类别:"))
+        usgs_layout.addWidget(self.usgs_subcategory_combo)
+        
+        self.usgs_spectrum_list = QComboBox()
+        self.usgs_spectrum_list.currentIndexChanged.connect(self._on_usgs_spectrum_selected)
+        usgs_layout.addWidget(QLabel("光谱:"))
+        usgs_layout.addWidget(self.usgs_spectrum_list)
+        
+        self.usgs_select_widget.setVisible(False)
+        left_layout.insertWidget(0, self.usgs_select_widget)
         
         # 右侧面板：光谱图 + 伪彩图
         right_panel = QWidget()
@@ -87,6 +140,126 @@ class PreviewPanel(QWidget):
         self.file_browser.folder_selected.connect(self._on_folder_selected)
         self.file_browser.files_selected.connect(self._on_files_selected)
         self.preprocessing_panel.preprocessing_changed.connect(self._apply_preprocessing)
+        
+        if self.usgs_library:
+            self._init_usgs_ui()
+    
+    def _init_usgs_ui(self):
+        """初始化USGS UI"""
+        from ..core.usgs_reader import USGSSpectralLibrary
+        
+        for en_name, cn_name in USGSSpectralLibrary.CHAPTERS.items():
+            self.usgs_category_combo.addItem(f"{cn_name} ({en_name})", en_name)
+            self.usgs_category_combo.addItem(f"{cn_name} ({en_name})", en_name)
+        
+        self.usgs_category_combo.currentIndexChanged.connect(self._on_usgs_category_changed)
+    
+    def _on_source_changed(self, index):
+        """数据源切换"""
+        source = self.source_combo.currentData()
+        self.usgs_mode = (source == "usgs")
+        
+        self.file_browser.setVisible(not self.usgs_mode)
+        self.usgs_select_widget.setVisible(self.usgs_mode)
+        
+        if self.usgs_mode:
+            self._apply_usgs_preprocessing()
+        else:
+            self._apply_preprocessing()
+    
+    def _on_usgs_category_changed(self, index):
+        """USGS类别切换"""
+        if not self.usgs_library:
+            return
+        
+        self.usgs_subcategory_combo.clear()
+        self.usgs_subcategory_combo.addItem("全部子类别", "all")
+        
+        category = self.usgs_category_combo.currentData()
+        if category == "all":
+            return
+        
+        from ..core.usgs_reader import USGSSpectralLibrary
+        
+        sub_cats = self.usgs_library.get_sub_categories(category)
+        for sub_cat in sub_cats:
+            display_name = USGSSpectralLibrary.get_sub_category_display_name(sub_cat)
+            self.usgs_subcategory_combo.addItem(display_name, sub_cat)
+        
+        self._update_usgs_spectrum_list()
+    
+    def _update_usgs_spectrum_list(self):
+        """更新USGS光谱列表"""
+        from ..core.usgs_reader import USGSSpectralLibrary
+        
+        self.usgs_spectrum_list.clear()
+        
+        if not self.usgs_library:
+            return
+        
+        category = self.usgs_category_combo.currentData()
+        sub_category = self.usgs_subcategory_combo.currentData()
+        
+        if category == "all":
+            spectra = self.usgs_library.get_all_spectra()
+        elif sub_category == "all":
+            spectra = self.usgs_library.get_spectra_by_category(category)
+        else:
+            spectra = self.usgs_library.get_spectra_by_sub_category(category, sub_category)
+        
+        for filepath, metadata in spectra[:500]:
+            self.usgs_spectrum_list.addItem(metadata.name, filepath)
+    
+    def _on_usgs_spectrum_selected(self, index):
+        """USGS光谱选中"""
+        if index < 0:
+            return
+        
+        filepath = self.usgs_spectrum_list.currentData()
+        if filepath and self.usgs_library:
+            spectrum = self.usgs_library.load_spectrum(filepath)
+            if spectrum:
+                self.loaded_data = {"usgs": spectrum}
+                self._apply_usgs_preprocessing()
+    
+    def _apply_usgs_preprocessing(self):
+        """应用USGS光谱预处理"""
+        if "usgs" not in self.loaded_data:
+            return
+        
+        from ..core.preprocessing import Preprocessor
+        
+        spectrum = self.loaded_data["usgs"]
+        wavelengths = spectrum.wavelengths.copy()
+        intensities = spectrum.intensities.copy()
+        
+        mask = wavelengths >= 350
+        wavelengths = wavelengths[mask]
+        intensities = intensities[mask]
+        
+        smooth_method = self.preprocessing_panel.get_smoothing_method()
+        if smooth_method != "None":
+            params = self.preprocessing_panel.get_smoothing_params()
+            if smooth_method == "Savitzky-Golay":
+                intensities = Preprocessor.apply(intensities, "Savitzky-Golay", **params)
+            elif smooth_method == "Moving Average":
+                intensities = Preprocessor.apply(intensities, "Moving Average", window=params['window'])
+        
+        norm_method = self.preprocessing_panel.get_normalization_method()
+        if norm_method != "None":
+            if norm_method == "Min-Max":
+                intensities = Preprocessor.apply(intensities, "Min-Max")
+            elif norm_method == "Z-Score":
+                intensities = Preprocessor.apply(intensities, "Z-Score")
+        
+        baseline_method = self.preprocessing_panel.get_baseline_method()
+        if baseline_method != "None":
+            if baseline_method == "AirPLS" or baseline_method == "Subtract Baseline":
+                intensities = Preprocessor.apply(intensities, "Subtract Baseline")
+        
+        title = spectrum.metadata.name
+        self.spectrum_plot.plot_spectrum(wavelengths, intensities, title=title)
+        self.image_view.show_fake_hsi_image(wavelengths, intensities, title=title)
     
     def _on_folder_selected(self, folder: str):
         """
@@ -158,8 +331,8 @@ class PreviewPanel(QWidget):
                 continue
             
             data = self.loaded_data[filepath]
-            # 过滤400nm以下的数据
-            mask = data.wavelengths >= 400
+            # 过滤350nm以下的数据
+            mask = data.wavelengths >= 350
             wavelengths = data.wavelengths[mask]
             intensities = data.intensities[mask].copy()
             

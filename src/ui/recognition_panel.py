@@ -160,11 +160,11 @@ class RecognitionPanel(QWidget):
         """
         选择待识别文件
         
-        弹出文件对话框选择光谱文件(.isf, .xlsx, .xls)
+        弹出文件对话框选择光谱文件(.isf, .xlsx, .xls, .txt)
         """
         files, _ = QFileDialog.getOpenFileNames(
             self, "Select Files to Recognize", "",
-            "Spectrum Files (*.isf *.xlsx *.xls);;All Files (*)"
+            "Spectrum Files (*.isf *.xlsx *.xls *.txt);;All Files (*)"
         )
         
         if files:
@@ -208,17 +208,27 @@ class RecognitionPanel(QWidget):
             for filepath in self.file_paths:
                 try:
                     ext = os.path.splitext(filepath)[1].lower()
-                    if ext in ('.xlsx', '.xls'):
+                    
+                    if ext == '.txt':
+                        from ..core.usgs_reader import USGSSpectralLibrary
+                        lib = USGSSpectralLibrary(os.path.dirname(os.path.dirname(os.path.dirname(filepath))))
+                        spectrum = lib.load_spectrum(filepath)
+                        if spectrum:
+                            data = type('obj', (object,), {
+                                'wavelengths': spectrum.wavelengths,
+                                'intensities': spectrum.intensities
+                            })()
+                        else:
+                            raise ValueError("Failed to load USGS spectrum")
+                    elif ext in ('.xlsx', '.xls'):
                         data = parse_xlsx_file(filepath)
                     else:
                         data = parse_isf_file(filepath)
                     
-                    # 过滤400nm以下数据
-                    mask = data.wavelengths >= 400
+                    mask = data.wavelengths >= 350
                     wavelengths = data.wavelengths[mask]
                     intensities = data.intensities[mask]
                     
-                    # 提取特征并预测
                     features = self.classifier._extract_features(wavelengths, intensities)
                     features = features.reshape(1, -1)
                     

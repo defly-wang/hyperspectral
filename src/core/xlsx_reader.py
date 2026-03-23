@@ -86,7 +86,7 @@ def parse_xlsx_file(filepath: str, wavelength_col: int = 0, intensity_col: int =
     )
 
 
-def load_xlsx_spectrum(filepath: str, min_wavelength: float = 400) -> Tuple[np.ndarray, np.ndarray]:
+def load_xlsx_spectrum(filepath: str, min_wavelength: float = 350) -> Tuple[np.ndarray, np.ndarray]:
     """
     快速加载xlsx文件中的光谱数据（用于多进程）
     
