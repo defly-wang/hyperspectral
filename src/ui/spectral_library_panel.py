@@ -71,7 +71,11 @@ class SpectralLibraryPanel(QWidget):
         for en_name, cn_name in USGSSpectralLibrary.CHAPTERS.items():
             self.category_combo.addItem(f"{cn_name} ({en_name})", en_name)
         
+        self.sub_category_combo = QComboBox()
+        self.sub_category_combo.addItem("全部子类别", "all")
+        
         category_layout.addWidget(self.category_combo)
+        category_layout.addWidget(self.sub_category_combo)
         category_group.setLayout(category_layout)
         
         search_group = QGroupBox("搜索")
@@ -139,6 +143,7 @@ class SpectralLibraryPanel(QWidget):
         main_layout.addLayout(right_layout, 2)
         
         self.category_combo.currentIndexChanged.connect(self._on_category_changed)
+        self.sub_category_combo.currentIndexChanged.connect(self._on_sub_category_changed)
         self.search_btn.clicked.connect(self._on_search)
         self.search_input.returnPressed.connect(self._on_search)
         self.load_btn.clicked.connect(self._on_load_spectrum)
@@ -175,10 +180,14 @@ class SpectralLibraryPanel(QWidget):
                 return
             
             category = self.category_combo.currentData()
+            sub_category = self.sub_category_combo.currentData()
+            
             if category == "all":
                 spectra_list = self.current_library.get_all_spectra()
-            else:
+            elif sub_category == "all":
                 spectra_list = self.current_library.get_spectra_by_category(category)
+            else:
+                spectra_list = self.current_library.get_spectra_by_sub_category(category, sub_category)
         
         for filepath, metadata in spectra_list:
             item = QListWidgetItem(metadata.name)
@@ -187,7 +196,25 @@ class SpectralLibraryPanel(QWidget):
     
     def _on_category_changed(self):
         """类别切换处理"""
+        self._update_sub_categories()
         self._update_list()
+    
+    def _on_sub_category_changed(self):
+        """子类别切换处理"""
+        self._update_list()
+    
+    def _update_sub_categories(self):
+        """更新子类别下拉框"""
+        self.sub_category_combo.clear()
+        self.sub_category_combo.addItem("全部子类别", "all")
+        
+        category = self.category_combo.currentData()
+        if category == "all" or not self.current_library:
+            return
+        
+        sub_cats = self.current_library.get_sub_categories(category)
+        for sub_cat in sub_cats:
+            self.sub_category_combo.addItem(sub_cat, sub_cat)
     
     def _on_search(self):
         """搜索处理"""
@@ -224,6 +251,7 @@ class SpectralLibraryPanel(QWidget):
         info_rows = [
             ("名称", spectrum.metadata.name),
             ("类别", spectrum.metadata.category),
+            ("子类别", spectrum.metadata.sub_category),
             ("记录ID", spectrum.metadata.record_id),
             ("波长范围", f"{spectrum.wavelengths[0]:.3f} - {spectrum.wavelengths[-1]:.3f} μm"),
             ("数据点数", str(len(spectrum.wavelengths))),

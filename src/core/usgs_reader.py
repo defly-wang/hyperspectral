@@ -21,6 +21,7 @@ class USGSSpectrumMetadata:
     name: str = ""
     sample_id: str = ""
     category: str = ""
+    sub_category: str = ""
     instrument: str = ""
     processing: str = ""
 
@@ -107,11 +108,15 @@ class USGSSpectralLibrary:
             name = info_part.strip()
             category = filepath.parent.name
             
+            filename_parts = filepath.stem.replace("splib07a_", "").split("_")
+            sub_category = filename_parts[0] if filename_parts else ""
+            
             metadata = USGSSpectrumMetadata(
                 filename=filepath.name,
                 record_id=record_id,
                 name=name,
                 category=category,
+                sub_category=sub_category,
             )
             
             return metadata
@@ -219,6 +224,39 @@ class USGSSpectralLibrary:
         results = []
         for filepath, metadata in self.spectrum_index.items():
             if metadata.category == category:
+                results.append((filepath, metadata))
+        return results
+    
+    def get_sub_categories(self, category: str) -> List[str]:
+        """
+        获取某个类别下的子类别
+        
+        参数:
+            category: 类别名称(英文)
+            
+        返回:
+            List[str]: 子类别列表
+        """
+        sub_cats = set()
+        for filepath, metadata in self.spectrum_index.items():
+            if metadata.category == category and metadata.sub_category:
+                sub_cats.add(metadata.sub_category)
+        return sorted(list(sub_cats))
+    
+    def get_spectra_by_sub_category(self, category: str, sub_category: str) -> List[Tuple[str, USGSSpectrumMetadata]]:
+        """
+        按子类别获取光谱列表
+        
+        参数:
+            category: 类别名称(英文)
+            sub_category: 子类别名称
+            
+        返回:
+            List[Tuple[str, USGSSpectrumMetadata]]: (文件路径, 元数据)列表
+        """
+        results = []
+        for filepath, metadata in self.spectrum_index.items():
+            if metadata.category == category and metadata.sub_category == sub_category:
                 results.append((filepath, metadata))
         return results
     
