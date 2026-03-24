@@ -542,6 +542,59 @@ class USGSSpectralLibrary:
         return len(self.spectrum_index)
 
 
+def get_wavelengths_from_file(filepath: str) -> Optional[np.ndarray]:
+    """
+    根据光谱文件获取对应的波长列
+    
+    参数:
+        filepath: 光谱文件路径
+        
+    返回:
+        波长数组或None
+    """
+    filepath = Path(filepath)
+    if not filepath.exists():
+        return None
+    
+    library_path = filepath.parent.parent
+    
+    instrument = "ASD"
+    if "BECK" in filepath.name:
+        instrument = "BECK"
+    elif "ASD" in filepath.name or "ASDFR" in filepath.name or "ASDHR" in filepath.name:
+        instrument = "ASD"
+    elif "NIC4" in filepath.name or "NIC" in filepath.name:
+        instrument = "NIC4"
+    elif "AVIRIS" in filepath.name:
+        instrument = "AVIRIS"
+    
+    wavelength_files = {
+        "ASD": "splib07a_Wavelengths_ASD_0.35-2.5_microns_2151_ch.txt",
+        "BECK": "splib07a_Wavelengths_BECK_Beckman_0.2-3.0_microns.txt",
+        "NIC4": "splib07a_Wavelengths_NIC4_Nicolet_1.12-216microns.txt",
+        "AVIRIS": "splib07a_Wavelengths_AVIRIS_1996_0.37-2.5_microns.txt",
+    }
+    
+    wavelength_file = library_path / wavelength_files.get(instrument, wavelength_files["ASD"])
+    
+    if not wavelength_file.exists():
+        return None
+    
+    try:
+        wavelengths = []
+        with open(wavelength_file, 'r', encoding='utf-8', errors='ignore') as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith("splib07a"):
+                    try:
+                        wavelengths.append(float(line) * 1000)
+                    except ValueError:
+                        continue
+        return np.array(wavelengths)
+    except Exception:
+        return None
+
+
 def load_usgs_spectrum(filepath: str, library_path: Optional[str] = None) -> Optional[USGSSpectrumData]:
     """
     快速加载USGS光谱文件

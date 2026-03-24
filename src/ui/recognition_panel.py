@@ -211,6 +211,36 @@ class RecognitionPanel(QWidget):
                     
                     if ext in ('.xlsx', '.xls'):
                         data = parse_xlsx_file(filepath)
+                    elif ext == '.txt':
+                        from ..core.usgs_reader import USGSSpectralLibrary, get_wavelengths_from_file
+                        lib_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(filepath))), 'spectral_database', 'usgs', 'ASCIIdata_splib07a')
+                        if os.path.exists(lib_path):
+                            lib = USGSSpectralLibrary(lib_path)
+                            spectrum = lib.load_spectrum(filepath)
+                            if spectrum:
+                                data = type('Data', (), {
+                                    'wavelengths': spectrum.wavelengths,
+                                    'intensities': spectrum.intensities
+                                })()
+                            else:
+                                raise ValueError("Failed to load USGS spectrum")
+                        else:
+                            wavelengths_usgs = get_wavelengths_from_file(filepath)
+                            if wavelengths_usgs is None:
+                                raise ValueError("Cannot find wavelengths file")
+                            intensities_usgs = []
+                            with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
+                                for line in f:
+                                    line = line.strip()
+                                    if line and not line.startswith('splib07a'):
+                                        try:
+                                            intensities_usgs.append(float(line))
+                                        except ValueError:
+                                            continue
+                            data = type('Data', (), {
+                                'wavelengths': wavelengths_usgs,
+                                'intensities': np.array(intensities_usgs)
+                            })()
                     else:
                         data = parse_isf_file(filepath)
                     

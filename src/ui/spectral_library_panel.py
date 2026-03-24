@@ -98,6 +98,7 @@ class SpectralLibraryPanel(QWidget):
         self.spectrum_list = QListWidget()
         self.spectrum_list.setMaximumWidth(350)
         self.spectrum_list.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
+        self.spectrum_list.itemSelectionChanged.connect(self._on_spectrum_selected)
         self.spectrum_list.itemDoubleClicked.connect(self._on_spectrum_double_clicked)
         
         list_layout.addWidget(self.spectrum_list)
@@ -118,23 +119,10 @@ class SpectralLibraryPanel(QWidget):
         info_layout.addWidget(self.info_table)
         info_group.setLayout(info_layout)
         
-        action_layout = QHBoxLayout()
-        
-        self.load_btn = QPushButton("加载光谱")
-        self.plot_selected_btn = QPushButton("绘制选中")
-        self.add_compare_btn = QPushButton("添加到对比")
-        self.clear_compare_btn = QPushButton("清空对比")
-        
-        action_layout.addWidget(self.load_btn)
-        action_layout.addWidget(self.plot_selected_btn)
-        action_layout.addWidget(self.add_compare_btn)
-        action_layout.addWidget(self.clear_compare_btn)
-        
         left_layout.addWidget(category_group)
         left_layout.addWidget(search_group)
         left_layout.addWidget(list_group)
         left_layout.addWidget(info_group)
-        left_layout.addLayout(action_layout)
         
         right_layout = QVBoxLayout()
         
@@ -149,10 +137,6 @@ class SpectralLibraryPanel(QWidget):
         self.sub_category_combo.currentIndexChanged.connect(self._on_sub_category_changed)
         self.search_btn.clicked.connect(self._on_search)
         self.search_input.returnPressed.connect(self._on_search)
-        self.load_btn.clicked.connect(self._on_load_spectrum)
-        self.plot_selected_btn.clicked.connect(self._on_plot_selected)
-        self.add_compare_btn.clicked.connect(self._on_add_compare)
-        self.clear_compare_btn.clicked.connect(self._on_clear_compare)
     
     def _init_library(self):
         """初始化光谱库"""
@@ -267,14 +251,36 @@ class SpectralLibraryPanel(QWidget):
             self.info_table.setItem(i, 0, QTableWidgetItem(key))
             self.info_table.setItem(i, 1, QTableWidgetItem(value))
     
-    def _on_load_spectrum(self):
-        """加载光谱按钮处理"""
-        current_item = self.spectrum_list.currentItem()
+    def _on_spectrum_selected(self):
+        """光谱选中处理"""
+        selected_items = self.spectrum_list.selectedItems()
         
-        if current_item:
-            filepath = current_item.data(Qt.ItemDataRole.UserRole)
-            self._load_and_display(filepath)
-            self.spectrum_loaded.emit(self.selected_spectrum)
+        if not selected_items:
+            return
+        
+        spectra_to_plot = []
+        
+        for item in selected_items:
+            filepath = item.data(Qt.ItemDataRole.UserRole)
+            spectrum = self.current_library.load_spectrum(filepath)
+            
+            if spectrum:
+                self.selected_spectrum = spectrum
+                self._update_info(spectrum)
+                spectra_to_plot.append((
+                    spectrum.wavelengths,
+                    spectrum.intensities,
+                    spectrum.metadata.name
+                ))
+        
+        if not spectra_to_plot:
+            return
+        
+        if len(spectra_to_plot) == 1:
+            wl, intensity, name = spectra_to_plot[0]
+            self.plot_widget.plot_spectrum(wl, intensity, title=name)
+        else:
+            self.plot_widget.plot_multiple_spectra(spectra_to_plot, title=f"{len(spectra_to_plot)} Spectra")
     
     def _on_plot_selected(self):
         """绘制选中的多条光谱"""

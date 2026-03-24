@@ -239,7 +239,7 @@ class SpectrumClassifier:
         """
         提取特征向量
         
-        将光谱数据转换为固定长度的特征向量
+        将光谱数据转换为固定长度的特征向量，使用插值处理不同波长间隔
         
         Args:
             wavelengths: 波长数组
@@ -248,14 +248,31 @@ class SpectrumClassifier:
         Returns:
             特征向量
         """
+        from scipy.interpolate import interp1d
+        
         features = np.zeros(self.feature_length, dtype=np.float32)
         
-        for wl, intensity in zip(wavelengths, intensities):
-            idx = int(wl) - self.min_wavelength
-            if 0 <= idx < self.feature_length:
-                features[idx] = intensity
+        if len(wavelengths) < 2:
+            return features
         
-        return features
+        try:
+            interp_func = interp1d(
+                wavelengths, intensities, 
+                kind='linear', 
+                bounds_error=False, 
+                fill_value=0.0
+            )
+            
+            feature_wavelengths = np.arange(self.min_wavelength, self.max_wavelength + 1)
+            features = interp_func(feature_wavelengths)
+            features = np.nan_to_num(features, nan=0.0, posinf=0.0, neginf=0.0)
+        except Exception:
+            for wl, intensity in zip(wavelengths, intensities):
+                idx = int(round(wl)) - self.min_wavelength
+                if 0 <= idx < self.feature_length:
+                    features[idx] = intensity
+        
+        return features.astype(np.float32)
     
     def train(self, X: np.ndarray, y: np.ndarray, model_type: str = 'rf', 
               test_size: float = 0.2, random_state: int = 42,
@@ -281,7 +298,16 @@ class SpectrumClassifier:
         Returns:
             包含准确率、分类报告等训练结果的字典
         """
+        if X is None or y is None:
+            raise ValueError("X and y cannot be None")
+        
         self.label_encoder = LabelEncoder()
+        
+        y_train_encoded = None
+        y_val_encoded = None
+        y_test_encoded = None
+        X_train = None
+        X_test = None
         
         if X_val is not None and y_val is not None and X_test is not None and y_test is not None:
             y_encoded = self.label_encoder.fit_transform(np.concatenate([y, y_val, y_test]))
@@ -294,21 +320,33 @@ class SpectrumClassifier:
             
             if X_val is not None and y_val is not None:
                 y_val_encoded = self.label_encoder.transform(y_val)
-            else:
-                y_val_encoded = None
             
             if X_test is not None and y_test is not None:
                 y_test_encoded = self.label_encoder.transform(y_test)
             else:
-                y_test_encoded = None
                 X_train, X_test, y_train_encoded, y_test_encoded = train_test_split(
                     X, y_encoded, test_size=test_size, random_state=random_state, stratify=y_encoded
                 )
             
-            if X_val is None and y_val is None and X_test is None and y_test is None:
-                X_train, X_val, y_train_encoded, y_val_encoded = train_test_split(
-                    X_train, y_train_encoded, test_size=0.25, random_state=random_state, stratify=y_train_encoded
-                )
+            if X_train is None:
+                X_train = X
+            
+            if y_train_encoded is None:
+                y_train_encoded = y_encoded
+            
+            if X_val is None and y_val is None:
+                if len(np.unique(y_train_encoded)) >= 2:
+                    X_train, X_val, y_train_encoded, y_val_encoded = train_test_split(
+                        X_train, y_train_encoded, test_size=0.25, random_state=random_state, stratify=y_train_encoded
+                    )
+                else:
+                    X_val = None
+                    y_val_encoded = None
+        
+        if X_train is None:
+            raise ValueError("X_train is None after processing")
+        if X_test is None:
+            raise ValueError("X_test is None after processing")
         
         self.scaler = StandardScaler()
         X_train_scaled = self.scaler.fit_transform(X_train)
