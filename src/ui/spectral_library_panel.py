@@ -97,6 +97,7 @@ class SpectralLibraryPanel(QWidget):
         
         self.spectrum_list = QListWidget()
         self.spectrum_list.setMaximumWidth(350)
+        self.spectrum_list.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
         self.spectrum_list.itemDoubleClicked.connect(self._on_spectrum_double_clicked)
         
         list_layout.addWidget(self.spectrum_list)
@@ -120,10 +121,12 @@ class SpectralLibraryPanel(QWidget):
         action_layout = QHBoxLayout()
         
         self.load_btn = QPushButton("加载光谱")
+        self.plot_selected_btn = QPushButton("绘制选中")
         self.add_compare_btn = QPushButton("添加到对比")
         self.clear_compare_btn = QPushButton("清空对比")
         
         action_layout.addWidget(self.load_btn)
+        action_layout.addWidget(self.plot_selected_btn)
         action_layout.addWidget(self.add_compare_btn)
         action_layout.addWidget(self.clear_compare_btn)
         
@@ -147,6 +150,7 @@ class SpectralLibraryPanel(QWidget):
         self.search_btn.clicked.connect(self._on_search)
         self.search_input.returnPressed.connect(self._on_search)
         self.load_btn.clicked.connect(self._on_load_spectrum)
+        self.plot_selected_btn.clicked.connect(self._on_plot_selected)
         self.add_compare_btn.clicked.connect(self._on_add_compare)
         self.clear_compare_btn.clicked.connect(self._on_clear_compare)
     
@@ -271,6 +275,35 @@ class SpectralLibraryPanel(QWidget):
             filepath = current_item.data(Qt.ItemDataRole.UserRole)
             self._load_and_display(filepath)
             self.spectrum_loaded.emit(self.selected_spectrum)
+    
+    def _on_plot_selected(self):
+        """绘制选中的多条光谱"""
+        selected_items = self.spectrum_list.selectedItems()
+        
+        if not selected_items:
+            return
+        
+        spectra_to_plot = []
+        
+        for item in selected_items:
+            filepath = item.data(Qt.ItemDataRole.UserRole)
+            spectrum = self.current_library.load_spectrum(filepath)
+            
+            if spectrum:
+                spectra_to_plot.append((
+                    spectrum.wavelengths,
+                    spectrum.intensities,
+                    spectrum.metadata.name
+                ))
+        
+        if not spectra_to_plot:
+            return
+        
+        if len(spectra_to_plot) == 1:
+            wl, intensity, name = spectra_to_plot[0]
+            self.plot_widget.plot_spectrum(wl, intensity, title=name)
+        else:
+            self.plot_widget.plot_multiple_spectra(spectra_to_plot, title=f"{len(spectra_to_plot)} Spectra")
     
     def _on_add_compare(self):
         """添加到对比"""

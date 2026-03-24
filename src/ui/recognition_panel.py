@@ -209,18 +209,7 @@ class RecognitionPanel(QWidget):
                 try:
                     ext = os.path.splitext(filepath)[1].lower()
                     
-                    if ext == '.txt':
-                        from ..core.usgs_reader import USGSSpectralLibrary
-                        lib = USGSSpectralLibrary(os.path.dirname(os.path.dirname(os.path.dirname(filepath))))
-                        spectrum = lib.load_spectrum(filepath)
-                        if spectrum:
-                            data = type('obj', (object,), {
-                                'wavelengths': spectrum.wavelengths,
-                                'intensities': spectrum.intensities
-                            })()
-                        else:
-                            raise ValueError("Failed to load USGS spectrum")
-                    elif ext in ('.xlsx', '.xls'):
+                    if ext in ('.xlsx', '.xls'):
                         data = parse_xlsx_file(filepath)
                     else:
                         data = parse_isf_file(filepath)

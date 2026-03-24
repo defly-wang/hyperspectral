@@ -160,19 +160,17 @@ class TrainingPanel(QWidget):
         扫描数据目录
         
         检查目录结构，判断是否为已分割的数据集(train/val/test)，
-        或USGS光谱库目录，并显示数据统计信息
+        并显示数据统计信息
         
         Args:
             directory: 数据目录路径
         """
         from ..core.model_trainer import SpectrumClassifier
-        from ..core.usgs_reader import USGSSpectralLibrary
         
         classifier = SpectrumClassifier()
         is_split = classifier.detect_split_dirs(directory)
         
         if is_split:
-            # 已分割的数据集
             train_dir = os.path.join(directory, 'train')
             categories = sorted([d for d in os.listdir(train_dir) 
                                if os.path.isdir(os.path.join(train_dir, d))])
@@ -209,67 +207,32 @@ class TrainingPanel(QWidget):
                 f"Data source: Pre-split directories"
             )
             self.is_split_data = True
-            self.split_data = None
             self.test_size_label.setVisible(False)
             self.test_size_spin.setVisible(False)
-            self.is_usgs_data = False
         else:
-            # 检查是否为USGS光谱库目录
-            has_chapters = any(ch.startswith('Chapter') for ch in os.listdir(directory) 
-                              if os.path.isdir(os.path.join(directory, ch)))
+            categories = [d for d in os.listdir(directory) 
+                         if os.path.isdir(os.path.join(directory, d))]
             
-            if has_chapters:
-                # USGS光谱库目录
-                categories = []
-                total_files = 0
-                usgs_lib = USGSSpectralLibrary(directory)
-                
-                for chapter_key, chapter_cn in USGSSpectralLibrary.CHAPTERS.items():
-                    chapter_path = os.path.join(directory, chapter_key)
-                    if os.path.exists(chapter_path):
-                        categories.append(f"{chapter_cn} ({chapter_key})")
-                        total_files += len([f for f in os.listdir(chapter_path) 
-                                           if f.endswith('.txt')])
-                
-                self.data_info_label.setText(
-                    f"Found {len(categories)} categories: {', '.join(categories)}\n"
-                    f"Total files: {total_files}\n"
-                    f"Feature dimension: 350-2500nm (2151 points)\n"
-                    f"Data source: USGS Spectral Library"
-                )
-                self.is_split_data = False
-                self.split_data = None
-                self.test_size_label.setVisible(True)
-                self.test_size_spin.setVisible(True)
-                self.is_usgs_data = True
-                self.usgs_library = usgs_lib
-            else:
-                # 未分割的标准数据集
-                categories = [d for d in os.listdir(directory) 
-                             if os.path.isdir(os.path.join(directory, d))]
-                
-                if not categories:
-                    self.data_info_label.setText(t("no_category_found"))
-                    self.train_btn.setEnabled(False)
-                    return
-                
-                total_files = 0
-                for category in categories:
-                    category_dir = os.path.join(directory, category)
-                    files = [f for f in os.listdir(category_dir) 
-                            if f.lower().endswith(('.xlsx', '.xls'))]
-                    total_files += len(files)
-                
-                self.data_info_label.setText(
-                    f"Found {len(categories)} categories: {', '.join(categories)}\n"
-                    f"Total files: {total_files}\n"
-                    f"Feature dimension: 350-2500nm (2151 points)"
-                )
-                self.is_split_data = False
-                self.split_data = None
-                self.test_size_label.setVisible(True)
-                self.test_size_spin.setVisible(True)
-                self.is_usgs_data = False
+            if not categories:
+                self.data_info_label.setText(t("no_category_found"))
+                self.train_btn.setEnabled(False)
+                return
+            
+            total_files = 0
+            for category in categories:
+                category_dir = os.path.join(directory, category)
+                files = [f for f in os.listdir(category_dir) 
+                        if f.lower().endswith(('.xlsx', '.xls'))]
+                total_files += len(files)
+            
+            self.data_info_label.setText(
+                f"Found {len(categories)} categories: {', '.join(categories)}\n"
+                f"Total files: {total_files}\n"
+                f"Feature dimension: 350-2500nm (2151 points)"
+            )
+            self.is_split_data = False
+            self.test_size_label.setVisible(True)
+            self.test_size_spin.setVisible(True)
         
         self.categories = categories
         self.train_btn.setEnabled(True)
@@ -325,8 +288,6 @@ class TrainingPanel(QWidget):
                     min_wavelength=350,
                     use_split_dirs=True
                 )
-            elif hasattr(self, 'is_usgs_data') and self.is_usgs_data and hasattr(self, 'usgs_library'):
-                self._load_usgs_data()
             else:
                 X, y, self.X_val, self.y_val, self.X_test, self.y_test = self.classifier.load_data_from_directory(
                     self.data_dir, 
@@ -335,56 +296,6 @@ class TrainingPanel(QWidget):
                 )
                 self.y_train = y
             self.load_finished = True
-        
-        def _load_usgs_data():
-            """加载USGS光谱数据用于训练"""
-            import numpy as np
-            from sklearn.model_selection import train_test_split
-            
-            all_spectra = []
-            all_labels = []
-            min_wl = 350
-            max_wl = 2500
-            feature_len = max_wl - min_wl + 1
-            
-            all_spectra_list = self.usgs_library.get_all_spectra()
-            total = len(all_spectra_list)
-            
-            for idx, (filepath, metadata) in enumerate(all_spectra_list):
-                spectrum = self.usgs_library.load_spectrum(filepath)
-                if spectrum is None:
-                    continue
-                
-                features = np.zeros(feature_len, dtype=np.float32)
-                for wl, intensity in zip(spectrum.wavelengths, spectrum.intensities):
-                    if min_wl <= wl <= max_wl:
-                        features[int(wl) - min_wl] = intensity
-                
-                chapter_name = metadata.category.replace('Chapter', '').split('_')[0]
-                all_spectra.append(features)
-                all_labels.append(chapter_name)
-                
-                if idx % 100 == 0:
-                    self.loaded_files = idx
-                    self.total_files = total
-            
-            if not all_spectra:
-                return
-            
-            X = np.array(all_spectra)
-            y = np.array(all_labels)
-            
-            test_size = self.test_size_spin.value()
-            X_train, X_test, y_train, y_test = train_test_split(
-                X, y, test_size=test_size, random_state=42, stratify=y
-            )
-            
-            self.X_train = X_train
-            self.y_train = y_train
-            self.X_val = None
-            self.y_val = None
-            self.X_test = X_test
-            self.y_test = y_test
         
         import threading
         self.load_thread = threading.Thread(target=do_load)
