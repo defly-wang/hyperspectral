@@ -63,6 +63,16 @@ class SpectralLibraryPanel(QWidget):
         
         left_layout = QVBoxLayout()
         
+        lib_path_layout = QHBoxLayout()
+        self.lib_path_label = QLabel("库路径: 未设置")
+        self.lib_path_label.setWordWrap(True)
+        self.select_lib_btn = QPushButton("选择库")
+        self.select_lib_btn.setMaximumWidth(80)
+        self.select_lib_btn.clicked.connect(self._select_library_path)
+        lib_path_layout.addWidget(self.lib_path_label, 1)
+        lib_path_layout.addWidget(self.select_lib_btn)
+        left_layout.addLayout(lib_path_layout)
+        
         category_group = QGroupBox("光谱类别")
         category_layout = QVBoxLayout()
         
@@ -95,16 +105,6 @@ class SpectralLibraryPanel(QWidget):
         
         list_group = QGroupBox("光谱列表")
         list_layout = QVBoxLayout()
-        
-        lib_path_layout = QHBoxLayout()
-        self.lib_path_label = QLabel("库路径: 未设置")
-        self.lib_path_label.setWordWrap(True)
-        self.select_lib_btn = QPushButton("选择库目录")
-        self.select_lib_btn.clicked.connect(self._select_library_path)
-        lib_path_layout.addWidget(self.lib_path_label, 1)
-        lib_path_layout.addWidget(self.select_lib_btn)
-        
-        list_layout.addLayout(lib_path_layout)
         
         self.spectrum_list = QListWidget()
         self.spectrum_list.setMaximumWidth(350)
