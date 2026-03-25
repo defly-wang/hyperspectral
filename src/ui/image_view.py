@@ -106,21 +106,9 @@ class ImageViewWidget(QWidget):
         
         reshaped = intensities[:img_size*img_size].reshape(img_size, img_size)
         
-        im = self.axes.imshow(reshaped, cmap='viridis', aspect='auto')
-        
-        tick_step = max(1, img_size // 8)
-        tick_positions = np.arange(0, img_size, tick_step)
-        tick_labels = [f"{i}" for i in tick_positions]
-        self.axes.set_xticks(tick_positions)
-        self.axes.set_xticklabels(tick_labels)
-        self.axes.set_yticks(tick_positions)
-        self.axes.set_yticklabels(tick_labels)
-        self.axes.set_xlabel("Pixel X")
-        self.axes.set_ylabel("Pixel Y")
-        
-        self.figure.colorbar(im, ax=self.axes, label="Intensity")
-        
+        self.axes.imshow(reshaped, cmap='viridis', aspect='auto')
         self.axes.set_title(title)
+        self.axes.set_axis_off()
         self.figure.tight_layout()
         self.canvas.draw()
 
@@ -168,25 +156,13 @@ class ImageViewWidget(QWidget):
             reshaped = intensities[:img_size*img_size].reshape(img_size, img_size)
             
             cmap = cmaps[idx % len(cmaps)]
-            im = ax.imshow(reshaped, cmap=cmap, aspect='auto')
-            
-            tick_step = max(1, img_size // 5)
-            tick_positions = np.arange(0, img_size, tick_step)
-            tick_labels = [f"{i}" for i in tick_positions]
-            ax.set_xticks(tick_positions)
-            ax.set_xticklabels(tick_labels, fontsize=8)
-            ax.set_yticks(tick_positions)
-            ax.set_yticklabels(tick_labels, fontsize=8)
-            
-            if idx == 0:
-                ax.set_ylabel("Pixel Y", fontsize=9)
-            ax.set_xlabel("Pixel X", fontsize=9)
-            
-            self.figure.colorbar(im, ax=ax, shrink=0.8)
-            
-            ax.set_title(name, fontsize=9)
+            ax.imshow(reshaped, cmap=cmap, aspect='auto')
+            ax.set_axis_off()
         
-        self.figure.tight_layout()
+        self.figure.subplots_adjust(wspace=0, hspace=0)
+        for ax in self.figure.axes:
+            for spine in ax.spines.values():
+                spine.set_visible(False)
         self.canvas.draw()
 
     def clear(self):

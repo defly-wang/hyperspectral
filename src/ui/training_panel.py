@@ -289,7 +289,7 @@ class TrainingPanel(QWidget):
                     use_split_dirs=True
                 )
             else:
-                X, y, self.X_val, self.y_val, self.X_test, self.y_test = self.classifier.load_data_from_directory(
+                self.X_train, y, self.X_val, self.y_val, self.X_test, self.y_test = self.classifier.load_data_from_directory(
                     self.data_dir, 
                     min_wavelength=350,
                     use_split_dirs=False
