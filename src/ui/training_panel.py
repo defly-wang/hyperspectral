@@ -64,6 +64,11 @@ class TrainingPanel(QWidget):
         self.select_data_btn.clicked.connect(self._select_data_directory)
         data_path_layout.addWidget(self.select_data_btn)
         
+        self.open_data_folder_btn = QPushButton(t("open_folder"))
+        self.open_data_folder_btn.clicked.connect(self._open_data_folder)
+        self.open_data_folder_btn.setEnabled(False)
+        data_path_layout.addWidget(self.open_data_folder_btn)
+        
         data_layout.addLayout(data_path_layout)
         
         self.data_info_label = QLabel(t("no_directory_selected"))
@@ -153,7 +158,22 @@ class TrainingPanel(QWidget):
         if directory:
             self.data_dir = directory
             self.data_path_label.setText(f"Data: {directory}")
+            self.open_data_folder_btn.setEnabled(True)
             self._scan_directory(directory)
+    
+    def _open_data_folder(self):
+        """
+        在文件管理器中打开数据目录
+        """
+        if hasattr(self, 'data_dir') and self.data_dir:
+            import platform
+            system = platform.system()
+            if system == 'Windows':
+                os.startfile(self.data_dir)
+            elif system == 'Darwin':
+                os.system(f'open "{self.data_dir}"')
+            else:
+                os.system(f'xdg-open "{self.data_dir}"')
     
     def _scan_directory(self, directory: str):
         """
@@ -422,5 +442,6 @@ class TrainingPanel(QWidget):
         self.result_group.setTitle(t("results"))
         self.data_path_label.setText(t("data_directory") + ":")
         self.select_data_btn.setText("Select...")
+        self.open_data_folder_btn.setText(t("open_folder"))
         self.train_btn.setText(t("start_training"))
         self.save_btn.setText(t("save_model"))
