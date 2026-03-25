@@ -66,7 +66,7 @@ class SpectralLibraryPanel(QWidget):
         lib_path_layout = QHBoxLayout()
         self.lib_path_label = QLabel("库路径: 未设置")
         self.lib_path_label.setWordWrap(True)
-        self.lib_path_label.setMaximumWidth(200)
+        self.lib_path_label.setMaximumWidth(270)
         self.select_lib_btn = QPushButton("选择库")
         self.select_lib_btn.setMaximumWidth(80)
         self.select_lib_btn.clicked.connect(self._select_library_path)
