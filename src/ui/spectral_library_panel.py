@@ -22,7 +22,7 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                              QPushButton, QGroupBox, QListWidget, QListWidgetItem,
                              QLineEdit, QComboBox, QSplitter, QTableWidget,
                              QTableWidgetItem, QHeaderView, QAbstractItemView,
-                             QProgressBar)
+                             QProgressBar, QFileDialog)
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QColor
 
@@ -52,6 +52,7 @@ class SpectralLibraryPanel(QWidget):
         self.current_library: Optional[USGSSpectralLibrary] = None
         self.selected_spectrum: Optional[USGSSpectrumData] = None
         self.compare_spectra: List[USGSSpectrumData] = []
+        self.library_path: Optional[str] = None
         
         self._init_ui()
         self._init_library()
@@ -94,6 +95,16 @@ class SpectralLibraryPanel(QWidget):
         
         list_group = QGroupBox("光谱列表")
         list_layout = QVBoxLayout()
+        
+        lib_path_layout = QHBoxLayout()
+        self.lib_path_label = QLabel("库路径: 未设置")
+        self.lib_path_label.setWordWrap(True)
+        self.select_lib_btn = QPushButton("选择库目录")
+        self.select_lib_btn.clicked.connect(self._select_library_path)
+        lib_path_layout.addWidget(self.lib_path_label, 1)
+        lib_path_layout.addWidget(self.select_lib_btn)
+        
+        list_layout.addLayout(lib_path_layout)
         
         self.spectrum_list = QListWidget()
         self.spectrum_list.setMaximumWidth(350)
@@ -143,7 +154,22 @@ class SpectralLibraryPanel(QWidget):
         lib_path = Path(__file__).parent.parent.parent / "spectral_database" / "usgs" / "ASCIIdata_splib07a"
         
         if lib_path.exists():
-            self.current_library = USGSSpectralLibrary(str(lib_path))
+            self.library_path = str(lib_path)
+            self.lib_path_label.setText(f"库路径: {self.library_path}")
+            self.current_library = USGSSpectralLibrary(self.library_path)
+            self._update_list()
+    
+    def _select_library_path(self):
+        """选择光谱库目录"""
+        directory = QFileDialog.getExistingDirectory(
+            self, "选择光谱库目录",
+            str(Path(__file__).parent.parent.parent / "spectral_database")
+        )
+        
+        if directory:
+            self.library_path = directory
+            self.lib_path_label.setText(f"库路径: {self.library_path}")
+            self.current_library = USGSSpectralLibrary(directory)
             self._update_list()    
 
     def set_status_label(self, label):
