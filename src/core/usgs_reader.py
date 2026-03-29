@@ -417,7 +417,7 @@ class USGSSpectralLibrary:
         wavelength_files = {
             "ASD": "splib07a_Wavelengths_ASD_0.35-2.5_microns_2151_ch.txt",
             "BECK": "splib07a_Wavelengths_BECK_Beckman_0.2-3.0_microns.txt",
-            "NIC4": "splib07a_Wavenumber_NIC4_Nicolet_8,900_-_46_cm^-1.txt",
+            "NIC4": "splib07a_Wavelengths_NIC4_Nicolet_1.12-216microns.txt",
             "AVIRIS": "splib07a_Wavelengths_AVIRIS_1996_0.37-2.5_microns.txt",
         }
         
