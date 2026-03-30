@@ -19,8 +19,8 @@ else
 fi
 
 echo ""
-echo "[2/4] 安装 PyInstaller..."
-pip install pyinstaller -q
+echo "[2/4] 安装依赖..."
+pip install PyQt6 PyQt6-sip matplotlib scipy scikit-learn joblib openpyxl pyinstaller -q
 
 echo ""
 echo "[3/4] 清理旧构建..."
